@@ -55,6 +55,7 @@ export function Menu({ taskId, onEnded }: { taskId: number | null; onEnded: () =
               </>
             ) : (
               <>
+                <button onClick={() => go('#plan')}>Plan today</button>
                 <button onClick={() => go('#inbox')}>Inbox</button>
                 {taskId !== null && (
                   <button onClick={() => go(`#task/${taskId}`)}>Edit this task's steps</button>

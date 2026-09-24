@@ -46,6 +46,23 @@ export const UpdateStepBody = z
 
 export const FinishBlockBody = z.object({ outcome: BlockOutcome });
 
+/** The shortlist holds at most this many tasks, so a day never starts as a wall. */
+export const PLAN_LIMIT = 3;
+
+/** POST /api/blocks. `minutes` picks this block's length; the default comes from Settings. */
+export const StartBlockBody = z
+  .object({ minutes: z.number().int().min(1).max(180).optional() })
+  .optional()
+  .transform((b) => b ?? {});
+
+/** PUT /api/plan: today's shortlist, in order. */
+export const PlanBody = z.object({
+  taskIds: z
+    .array(z.number().int().positive())
+    .max(PLAN_LIMIT)
+    .refine((ids) => new Set(ids).size === ids.length, 'Each task only once'),
+});
+
 export const UpdateSettingsBody = z
   .object({
     focusMinutes: z.number().int().min(1).max(180).optional(),
@@ -53,6 +70,7 @@ export const UpdateSettingsBody = z
     longBreakMinutes: z.number().int().min(1).max(120).optional(),
     /** A long break after this many focus blocks; 0 turns long breaks off. */
     longBreakEvery: z.number().int().min(0).max(12).optional(),
+    headsUp: z.boolean().optional(),
   })
   .refine((b) => Object.keys(b).length > 0, 'Nothing to update');
 
@@ -65,6 +83,8 @@ export interface Task {
   status: TaskStatus;
   createdAt: string;
   completedAt: string | null;
+  /** Today's local date when the task is on today's shortlist. */
+  plannedFor: string | null;
 }
 
 export interface Step {
@@ -109,6 +129,8 @@ export interface Settings {
   breakMinutes: number;
   longBreakMinutes: number;
   longBreakEvery: number;
+  /** A soft chime two minutes before a block or break ends. */
+  headsUp: boolean;
 }
 
 /** POST /api/blocks/:id/finish */
@@ -140,6 +162,10 @@ export interface AppState {
   currentStep: { id: number; text: string } | null;
   block: Block | null;
   break: Break | null;
+  /** The next task on today's shortlist that isn't current: offered when a task is done. */
+  nextTask: { id: number; title: string } | null;
+  /** What the Now and Focus screens need from Settings. */
+  timers: { focusMinutes: number; headsUp: boolean };
 }
 
 /** GET /api/today */

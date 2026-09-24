@@ -32,7 +32,11 @@ const advance = (minutes: number) => {
   clock = new Date(clock.getTime() + minutes * 60_000);
 };
 
-async function call<T>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', url: string, body?: object) {
+async function call<T>(
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+  url: string,
+  body?: object,
+) {
   const res = await app.inject({ method, url, payload: body });
   return { status: res.statusCode, body: (res.body ? res.json() : null) as T };
 }
@@ -233,6 +237,7 @@ describe('breaks and timers', () => {
       breakMinutes: 5,
       longBreakMinutes: 15,
       longBreakEvery: 4,
+      headsUp: true,
     });
     await call('PATCH', '/api/settings', { focusMinutes: 50, breakMinutes: 10 });
     await call('POST', '/api/workday/start');
@@ -257,6 +262,71 @@ describe('breaks and timers', () => {
     await call('POST', '/api/workday/end');
     const { body } = await call<{ breaks: { ended_at: string }[] }>('GET', '/api/export');
     expect(body.breaks[0]!.ended_at).toBe(clock.toISOString());
+  });
+});
+
+describe("today's plan and starting", () => {
+  async function task(title: string): Promise<Task> {
+    return (await call<Task>('POST', '/api/tasks', { title })).body;
+  }
+
+  it('offers the next planned task once the current one is done', async () => {
+    await call('POST', '/api/workday/start');
+    const [a, b] = [await task('A'), await task('B')];
+    await task('C');
+    const { body: plan } = await call<Task[]>('PUT', '/api/plan', { taskIds: [b.id, a.id] });
+    expect(plan.map((t) => t.title)).toEqual(['B', 'A']);
+    expect(plan[0]!.plannedFor).toBe('2026-09-25');
+
+    let { body: state } = await call<AppState>('GET', '/api/state');
+    expect(state.nextTask).toEqual({ id: b.id, title: 'B' });
+
+    await call('POST', `/api/tasks/${b.id}/current`);
+    ({ body: state } = await call<AppState>('GET', '/api/state'));
+    expect(state.nextTask?.title).toBe('A');
+
+    await call('PATCH', `/api/tasks/${b.id}`, { status: 'done' });
+    await call('POST', `/api/tasks/${a.id}/current`);
+    ({ body: state } = await call<AppState>('GET', '/api/state'));
+    expect(state.nextTask).toBeNull();
+    expect((await call<Task[]>('GET', '/api/plan')).body.map((t) => t.id)).toEqual([a.id]);
+  });
+
+  it('keeps the plan to three open tasks', async () => {
+    const ids = [];
+    for (const t of ['A', 'B', 'C', 'D']) ids.push((await task(t)).id);
+    expect((await call('PUT', '/api/plan', { taskIds: ids })).status).toBe(400);
+    expect((await call('PUT', '/api/plan', { taskIds: [ids[0], ids[0]] })).status).toBe(400);
+    await call('PATCH', `/api/tasks/${ids[3]}`, { status: 'done' });
+    expect((await call('PUT', '/api/plan', { taskIds: [ids[3]] })).status).toBe(409);
+  });
+
+  it("lets yesterday's plan go quietly", async () => {
+    const a = await task('A');
+    await call('PUT', '/api/plan', { taskIds: [a.id] });
+    advance(24 * 60);
+    expect((await call<Task[]>('GET', '/api/plan')).body).toEqual([]);
+    expect((await call<AppState>('GET', '/api/state')).body.nextTask).toBeNull();
+  });
+
+  it('starts a block of the length picked, and Keep going repeats it', async () => {
+    await call('POST', '/api/workday/start');
+    await setUpCurrentTask(['A']);
+    const { body: block } = await call<Block>('POST', '/api/blocks', { minutes: 10 });
+    expect(block.plannedSeconds).toBe(600);
+    await call('POST', `/api/blocks/${block.id}/extend`);
+    advance(15);
+    const { body } = await call<FinishResult>('POST', `/api/blocks/${block.id}/finish`, {
+      outcome: 'keep_going',
+    });
+    expect(body.next?.plannedSeconds).toBe(600);
+    expect((await call('POST', '/api/blocks', { minutes: 0 })).status).toBe(400);
+  });
+
+  it('tells the screens the default length and the heads-up setting', async () => {
+    await call('PATCH', '/api/settings', { headsUp: false, focusMinutes: 20 });
+    const { body: state } = await call<AppState>('GET', '/api/state');
+    expect(state.timers).toEqual({ focusMinutes: 20, headsUp: false });
   });
 });
 

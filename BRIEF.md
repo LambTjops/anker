@@ -1,12 +1,14 @@
 # Anker — Project Brief
 
-> **Status:** Phase 1 and 1b (breaks) built, in owner testing. Source of truth for product and architecture decisions.
+> **Status:** Phases 1, 1b (breaks) and 1c (ADHD workflow) built, in owner testing. Source of truth for product and architecture decisions.
 > **Owner:** Nico
 > **Last updated:** 2026-09-25
 
 ---
 
 ## 1. What this is
+
+**Purpose:** help an owner with ADHD focus, beat procrastination and get things done. Every feature is judged by whether it lowers the barrier to starting, keeps attention on one thing, makes time visible or gives a quick sense of progress, all without shame.
 
 A single-user web app that shows **one step at a time**, runs a 25-minute focus block on it, and gives a clear **"workday is over"** moment so evenings are guilt-free.
 
@@ -66,6 +68,9 @@ breaks       id, workday_id, after_block_id, kind ('short'|'long'), started_at,
              planned_seconds, ended_at                                  (Phase 1b)
 settings     single row: focus_minutes, break_minutes, long_break_minutes,
              long_break_every (0 = never)                               (Phase 1b)
+             + heads_up (0|1)                                           (Phase 1c)
+tasks        + planned_for (local date), plan_position                 (Phase 1c)
+focus_blocks + base_seconds (length chosen at Start, before any +5 min) (Phase 1c)
 ```
 
 - At most one task has `status='current'`. The **current step** is its lowest-`position` step with status `todo`.
@@ -74,6 +79,8 @@ settings     single row: focus_minutes, break_minutes, long_break_minutes,
 - **Auto-close** runs lazily at the start of every request, so no cron is needed: if an open workday started before the most recent cutoff, close it at the cutoff and abandon any open block or break.
 - **Breaks (Phase 1b):** picking **Done** or **Stuck** once a block's time is up starts a break on the server. Keep going and stopping early don't. Once `long_break_every` blocks (default 4) have run since the last long break, the break is long. A break that runs out is closed lazily on the next request. Starting a block ends any break. Nothing ever starts a block automatically.
 - **+5 min** adds 300 seconds to `planned_seconds` of the running block or break. It only works while that timer is still counting down.
+- **Today's plan (Phase 1c):** up to 3 tasks with `planned_for` = today's local date, in `plan_position` order. The **next task** is the first planned task still in the inbox. Yesterday's plan stops matching, so unfinished tasks drift back to the inbox quietly.
+- **Block length (Phase 1c):** `POST /api/blocks { minutes? }` picks this block's length. Keep going repeats `base_seconds`, without any +5 min.
 - **Settings** default to 25 / 5 / 15 minutes and every 4 blocks (`FOCUS_MINUTES` seeds the first). Changes apply from the next block or break.
 
 **Phase 2 additions**
@@ -90,19 +97,24 @@ api_usage      id, at, coach_session_id, model, input_tokens, output_tokens,
 
 ## 5. Screens
 
-The Now screen shows one thing. Everything else is one quiet tap away, behind a small `⋯` menu (Inbox, Timer settings, End workday).
+The Now screen shows one thing. Everything else is one quiet tap away, behind a small `⋯` menu (Plan today, Inbox, Timer settings, End workday).
 
-1. **Now**: the current step in large type and a **Start** button. Nothing else.
-   - No current task: "Nothing picked yet" and a link to the Inbox.
+1. **Now**: the current step in large type (the task's name small above it) and **Start · 25 min**, with quiet "or 10 min · 45 min". Nothing else.
+   - No current task, but something planned: "Next up" and that task, with Start (it becomes current and starts in one tap) and "Change today's plan".
+   - No current task and nothing planned: "Nothing picked yet", **Plan today** and a link to the Inbox.
    - Task was never broken down: its title and **Start**. The task itself becomes its one step. A quiet "Break it down first" asks "What's the first step?" instead.
    - Task has no open steps left: "That task is clear", with "Add a step" and "Mark task done".
 2. **Focus**: the step text and a calm countdown. "Stop early" is small and low-contrast. When time is up: **Done** / **Stuck** / **Keep going**.
    - In Phase 1, **Stuck** asks "What's a smaller first move?" and inserts what you type _in front of_ the stuck step (`parent_step_id` points at it). The stuck step comes back once the small move is done. In Phase 2 the coach takes this over.
    - **Stop early** offers Done / Stuck / Stop for now / Back to the timer.
    - A quiet **+5 min** sits under the countdown while it runs.
+   - **Park a thought** (Phase 1c): one field that saves a stray thought to the inbox and returns straight to the timer.
+   - **Heads-up** (Phase 1c): a single soft note two minutes before a block or break of at least 5 minutes ends. It can be turned off in Timer settings.
+   - **Done moment** (Phase 1c): Done, and marking a task done, show a check that draws itself with a short rising sound for about a second. There are no points and no streaks.
    - **Break** (Phase 1b): after Done or Stuck at time's up, "Take a break." (or "Time for a longer break.") with a countdown, **+5 min** and **Skip break**. When it ends: a chime, "Break's over." and back to Now.
    - **Timer settings** (`#settings`): focus, break and longer-break minutes, and how many blocks come before a longer break.
-3. **Inbox** (`#inbox`): one autofocused text field (Enter saves and clears it) above a plain list of tasks. Tapping a task opens it.
+3. **Inbox** (`#inbox`): one autofocused text field (Enter saves and clears it) above a plain list of tasks. Tapping a task opens it. Tasks older than 14 days fold under "Show older tasks" (with no count) unless they're current or planned. Planned tasks are tagged "today".
+   - **Plan today** (`#plan`, Phase 1c): "Pick up to three, in the order you'll do them." Tap to number them 1–3, with a capture field on top. **Start with "…"** makes the first one current. **Start today** on the Off screen leads here.
 4. **Task** (`#task/:id`): the title, a step list (add, edit, reorder with up/down, delete) and **Make this my current task**. This is the only place a list of steps appears.
 5. **Off**: shown when there is no open workday.
    - After you end the day: "That's the workday done. It's okay to stop now." with a short list of what got done today (steps, not counts or scores).
@@ -133,12 +145,14 @@ Everything the UI does goes through this JSON API. The UI has no special endpoin
 | `POST /api/tasks/:id/steps`                     | `{ text }` or `{ texts: [] }`                                                                                          |
 | `PATCH /api/steps/:id`                          | Text, status, `position`                                                                                               |
 | `DELETE /api/steps/:id`                         | Delete a step                                                                                                          |
-| `POST /api/blocks`                              | Start a block on the current step (a task with no steps gets its title as its one step)                                |
+| `POST /api/blocks`                              | `{ minutes? }` → start a block on the current step (a task with no steps gets its title as its one step)               |
 | `POST /api/blocks/:id/finish`                   | `{ outcome }` → `{ next, break }`                                                                                      |
 | `POST /api/blocks/:id/extend`                   | +5 min on the running block                                                                                            |
 | `POST /api/breaks/:id/extend`                   | +5 min on the running break                                                                                            |
 | `POST /api/breaks/:id/end`                      | End the break now (skip)                                                                                               |
-| `GET  /api/settings`                            | Timer lengths                                                                                                          |
+| `GET  /api/settings`                            | Timer lengths and the heads-up setting                                                                                 |
+| `GET  /api/plan`                                | Today's shortlist, in order                                                                                            |
+| `PUT  /api/plan`                                | `{ taskIds }`: replace today's shortlist (at most 3 open tasks)                                                        |
 | `PATCH /api/settings`                           | `{ focusMinutes, breakMinutes, longBreakMinutes, longBreakEvery }` (any subset)                                        |
 | `GET  /api/export`                              | Full JSON dump (backup)                                                                                                |
 | `GET  /api/healthz`                             | Liveness                                                                                                               |
@@ -210,6 +224,15 @@ Each phase is deployable and usable on its own. I stop at the end of each one fo
 1. A break after Done or Stuck at time's up, with a longer one every 4th block. Chime at the end, then back to Now.
 2. +5 min on a running block or break.
 3. Timer settings in the app: focus, break and longer-break minutes, and the long-break interval.
+
+**Phase 1c: ADHD workflow** (added 2026-09-25 at the owner's request)
+
+1. Park a thought mid-block without leaving the timer.
+2. Today's plan (at most 3 tasks) and "Next up" once a task is done.
+3. Pick the length at Start (10 / 25 / 45), and Keep going repeats it.
+4. A soft heads-up two minutes before a block or break ends.
+5. A brief done moment: a check and a sound, no points.
+6. A calmer Inbox: older tasks fold away.
 
 **Phase 2: breakdown coach**
 

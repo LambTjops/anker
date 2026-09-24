@@ -2,8 +2,10 @@ import { useState } from 'preact/hooks';
 import type { Block, BlockOutcome } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { mmss, useCountdown } from '../countdown.ts';
+import { celebrate } from '../components/Celebration.tsx';
+import { ParkThought } from '../components/ParkThought.tsx';
 import { useAction } from '../hooks.ts';
-import { signalTimerEnd } from '../signal.ts';
+import { signalTimerEnd, softCue } from '../signal.ts';
 
 type Phase = 'running' | 'stopping' | 'stuck';
 
@@ -12,14 +14,14 @@ export function Focus({
   block,
   taskId,
   taskTitle,
+  headsUp,
   refresh,
-  onDone,
 }: {
   block: Block;
   taskId: number | null;
   taskTitle: string | null;
+  headsUp: boolean;
   refresh: () => Promise<void>;
-  onDone: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>('running');
   const [smaller, setSmaller] = useState('');
@@ -30,13 +32,13 @@ export function Focus({
     block.endsAt,
     () => signalTimerEnd('Block finished', stepText),
     (clock) => (clock ? `${clock} · Anker` : "Time's up · Anker"),
+    headsUp && block.plannedSeconds >= 5 * 60 ? softCue : undefined,
   );
 
   const finish = (outcome: BlockOutcome) =>
     run(async () => {
-      const result = await api.finishBlock(block.id, outcome);
-      // With a break coming, the flash would fade before Now shows again.
-      if (outcome === 'done' && !result.break) onDone();
+      await api.finishBlock(block.id, outcome);
+      if (outcome === 'done') celebrate('Done.');
       await refresh();
     });
 
@@ -135,12 +137,15 @@ export function Focus({
         </div>
       ) : (
         <div class="stack">
-          <button class="quiet" disabled={busy} onClick={extend}>
-            +5 min
-          </button>
-          <button class="quiet" onClick={() => setPhase('stopping')}>
-            Stop early
-          </button>
+          <ParkThought />
+          <div class="row">
+            <button class="quiet" disabled={busy} onClick={extend}>
+              +5 min
+            </button>
+            <button class="quiet" onClick={() => setPhase('stopping')}>
+              Stop early
+            </button>
+          </div>
         </div>
       )}
 

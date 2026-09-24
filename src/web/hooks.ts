@@ -2,11 +2,16 @@ import { useCallback, useEffect, useState } from 'preact/hooks';
 import { ApiFailure } from './api.ts';
 
 export type Route =
-  { name: 'main' } | { name: 'inbox' } | { name: 'settings' } | { name: 'task'; id: number };
+  | { name: 'main' }
+  | { name: 'inbox' }
+  | { name: 'plan' }
+  | { name: 'settings' }
+  | { name: 'task'; id: number };
 
 function parseHash(hash: string): Route {
   if (hash === '#inbox') return { name: 'inbox' };
   if (hash === '#settings') return { name: 'settings' };
+  if (hash === '#plan') return { name: 'plan' };
   const task = /^#task\/(\d+)$/.exec(hash);
   if (task) return { name: 'task', id: Number(task[1]) };
   return { name: 'main' };
@@ -22,7 +27,7 @@ export function useRoute(): Route {
   return route;
 }
 
-export function go(hash: '' | '#inbox' | '#settings' | `#task/${number}`): void {
+export function go(hash: '' | '#inbox' | '#plan' | '#settings' | `#task/${number}`): void {
   if (hash === '') {
     // Drop the hash entirely so "/" stays clean.
     history.pushState(null, '', location.pathname);

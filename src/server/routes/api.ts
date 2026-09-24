@@ -5,6 +5,8 @@ import {
   FinishBlockBody,
   IdParams,
   ListTasksQuery,
+  PlanBody,
+  StartBlockBody,
   UpdateSettingsBody,
   UpdateStepBody,
   UpdateTaskBody,
@@ -47,6 +49,7 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
     const open = q.openWorkday(db);
     const latest = q.latestWorkdayFor(db, localDate);
     const { task, step } = q.currentTaskAndStep(db);
+    const timers = settings();
     return {
       serverNow: at.toISOString(),
       localDate,
@@ -56,6 +59,8 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
       currentStep: step,
       block: q.openBlock(db),
       break: q.openBreak(db),
+      nextTask: q.nextTask(db, localDate),
+      timers: { focusMinutes: timers.focusMinutes, headsUp: timers.headsUp },
     };
   });
 
@@ -98,6 +103,16 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
     q.makeCurrent(db, IdParams.parse(req.params).id),
   );
 
+  // ---- Today's plan ----
+
+  const localToday = () => logicalDate(now(), day.tz, day.cutoff);
+
+  app.get('/api/plan', async () => q.getPlan(db, localToday()));
+
+  app.put('/api/plan', async (req) =>
+    q.setPlan(db, PlanBody.parse(req.body).taskIds, localToday()),
+  );
+
   // ---- Steps ----
 
   app.get('/api/tasks/:id/steps', async (req) => q.listSteps(db, IdParams.parse(req.params).id));
@@ -123,9 +138,11 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
 
   // ---- Focus blocks ----
 
-  app.post('/api/blocks', async (_req, reply) =>
-    reply.code(201).send(q.startBlock(db, now(), settings().focusMinutes * 60)),
-  );
+  app.post('/api/blocks', async (req, reply) => {
+    const { minutes } = StartBlockBody.parse(req.body);
+    const seconds = (minutes ?? settings().focusMinutes) * 60;
+    return reply.code(201).send(q.startBlock(db, now(), seconds));
+  });
 
   app.post('/api/blocks/:id/finish', async (req) => {
     const { id } = IdParams.parse(req.params);

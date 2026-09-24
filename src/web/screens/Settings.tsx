@@ -3,7 +3,9 @@ import type { Settings as SettingsT } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { go, useAction } from '../hooks.ts';
 
-const FIELDS: { key: keyof SettingsT; label: string; min: number; max: number }[] = [
+type NumberKey = Exclude<keyof SettingsT, 'headsUp'>;
+
+const FIELDS: { key: NumberKey; label: string; min: number; max: number }[] = [
   { key: 'focusMinutes', label: 'Focus block (minutes)', min: 1, max: 180 },
   { key: 'breakMinutes', label: 'Break (minutes)', min: 1, max: 60 },
   { key: 'longBreakMinutes', label: 'Longer break (minutes)', min: 1, max: 120 },
@@ -17,7 +19,8 @@ const FIELDS: { key: keyof SettingsT; label: string; min: number; max: number }[
 
 /** Timer lengths. Changes apply from the next block or break. */
 export function Settings() {
-  const [form, setForm] = useState<Record<keyof SettingsT, string> | null>(null);
+  const [form, setForm] = useState<Record<NumberKey, string> | null>(null);
+  const [headsUp, setHeadsUp] = useState(true);
   const [saved, setSaved] = useState(false);
   const { busy, error, run } = useAction();
 
@@ -30,6 +33,7 @@ export function Settings() {
         longBreakMinutes: String(s.longBreakMinutes),
         longBreakEvery: String(s.longBreakEvery),
       });
+      setHeadsUp(s.headsUp);
     });
   }, [run]);
 
@@ -43,6 +47,7 @@ export function Settings() {
         breakMinutes: Number(form.breakMinutes),
         longBreakMinutes: Number(form.longBreakMinutes),
         longBreakEvery: Number(form.longBreakEvery),
+        headsUp,
       });
       setSaved(true);
     });
@@ -78,6 +83,17 @@ export function Settings() {
               />
             </label>
           ))}
+          <label class="check">
+            <input
+              type="checkbox"
+              checked={headsUp}
+              onChange={(e) => {
+                setSaved(false);
+                setHeadsUp(e.currentTarget.checked);
+              }}
+            />
+            <span>Soft chime 2 minutes before a block or break ends</span>
+          </label>
           <button class="primary" type="submit" disabled={busy}>
             Save
           </button>

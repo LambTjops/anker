@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import type { AppState } from '../shared/api.ts';
 import { api } from './api.ts';
+import { Celebration } from './components/Celebration.tsx';
 import { useRoute } from './hooks.ts';
 import { Break } from './screens/Break.tsx';
 import { Focus } from './screens/Focus.tsx';
 import { Inbox } from './screens/Inbox.tsx';
 import { Now } from './screens/Now.tsx';
 import { Off } from './screens/Off.tsx';
+import { Plan } from './screens/Plan.tsx';
 import { Settings } from './screens/Settings.tsx';
 import { Task } from './screens/Task.tsx';
 
@@ -56,6 +58,7 @@ export function App() {
   if (route.name === 'inbox') screen = <Inbox />;
   else if (route.name === 'task') screen = <Task key={route.id} id={route.id} />;
   else if (route.name === 'settings') screen = <Settings />;
+  else if (route.name === 'plan') screen = <Plan />;
   else if (!state) screen = <main class="screen" />;
   else if (state.mode === 'off') screen = <Off state={state} refresh={refresh} />;
   else if (state.block)
@@ -65,8 +68,8 @@ export function App() {
         block={state.block}
         taskId={state.currentTask?.id ?? null}
         taskTitle={state.currentTask?.title ?? null}
+        headsUp={state.timers.headsUp}
         refresh={refresh}
-        onDone={() => setFlash("Done. Here's the next one.")}
       />
     );
   else if (state.break)
@@ -74,6 +77,7 @@ export function App() {
       <Break
         key={state.break.id}
         brk={state.break}
+        headsUp={state.timers.headsUp}
         refresh={refresh}
         onOver={() => setFlash("Break's over.")}
       />
@@ -84,6 +88,7 @@ export function App() {
     <>
       {banner}
       {screen}
+      <Celebration />
     </>
   );
 }

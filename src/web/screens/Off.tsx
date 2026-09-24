@@ -2,7 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type { AppState, Today } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { Capture } from '../components/Capture.tsx';
-import { useAction } from '../hooks.ts';
+import { go, useAction } from '../hooks.ts';
 
 /** Off-mode: the workday is over (or hasn't started). The Now screen stays hidden. */
 export function Off({ state, refresh }: { state: AppState; refresh: () => Promise<void> }) {
@@ -18,10 +18,12 @@ export function Off({ state, refresh }: { state: AppState; refresh: () => Promis
       .catch(() => setToday(null));
   }, [ended, state.localDate]);
 
+  // Starting the day leads straight into picking today's few things.
   const start = () =>
     run(async () => {
       await api.startWorkday();
       await refresh();
+      go('#plan');
     });
 
   return (

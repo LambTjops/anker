@@ -35,6 +35,7 @@ interface TaskRow {
   status: TaskStatus;
   created_at: string;
   completed_at: string | null;
+  planned_for: string | null;
 }
 
 interface StepRow {
@@ -63,6 +64,7 @@ interface BlockRow {
   workday_id: number;
   started_at: string;
   planned_seconds: number;
+  base_seconds: number | null;
   ended_at: string | null;
   outcome: BlockOutcome | null;
   step_text: string | null;
@@ -83,6 +85,7 @@ interface SettingsRow {
   break_minutes: number;
   long_break_minutes: number;
   long_break_every: number;
+  heads_up: number;
 }
 
 const toTask = (r: TaskRow): Task => ({
@@ -92,6 +95,7 @@ const toTask = (r: TaskRow): Task => ({
   status: r.status,
   createdAt: r.created_at,
   completedAt: r.completed_at,
+  plannedFor: r.planned_for,
 });
 
 const toStep = (r: StepRow): Step => ({
@@ -158,6 +162,7 @@ export function getSettings(db: Db, defaults: Settings): Settings {
     breakMinutes: row.break_minutes,
     longBreakMinutes: row.long_break_minutes,
     longBreakEvery: row.long_break_every,
+    headsUp: row.heads_up === 1,
   };
 }
 
@@ -165,9 +170,15 @@ export function updateSettings(db: Db, defaults: Settings, patch: Partial<Settin
   const next = { ...getSettings(db, defaults), ...patch };
   db.prepare(
     `INSERT OR REPLACE INTO settings
-       (id, focus_minutes, break_minutes, long_break_minutes, long_break_every)
-     VALUES (1, ?, ?, ?, ?)`,
-  ).run(next.focusMinutes, next.breakMinutes, next.longBreakMinutes, next.longBreakEvery);
+       (id, focus_minutes, break_minutes, long_break_minutes, long_break_every, heads_up)
+     VALUES (1, ?, ?, ?, ?, ?)`,
+  ).run(
+    next.focusMinutes,
+    next.breakMinutes,
+    next.longBreakMinutes,
+    next.longBreakEvery,
+    next.headsUp ? 1 : 0,
+  );
   return next;
 }
 
@@ -232,6 +243,48 @@ export function makeCurrent(db: Db, id: number): Task {
     db.prepare("UPDATE tasks SET status = 'current', completed_at = NULL WHERE id = ?").run(id);
     return getTask(db, id);
   })();
+}
+
+// ---- Today's plan ----
+
+/** Today's shortlist, in order. Tasks that were finished or dropped fall off it. */
+export function getPlan(db: Db, today: string): Task[] {
+  const rows = db
+    .prepare(
+      `SELECT * FROM tasks WHERE planned_for = ? AND status IN ('inbox', 'current')
+       ORDER BY plan_position, id`,
+    )
+    .all(today) as TaskRow[];
+  return rows.map(toTask);
+}
+
+/** Replaces today's shortlist. Only open tasks can be planned. */
+export function setPlan(db: Db, taskIds: number[], today: string): Task[] {
+  return db.transaction(() => {
+    for (const id of taskIds) {
+      const row = taskRow(db, id);
+      if (row.status !== 'inbox' && row.status !== 'current') {
+        throw conflict('task_closed', "Only open tasks can go on today's plan");
+      }
+    }
+    db.prepare(
+      'UPDATE tasks SET planned_for = NULL, plan_position = NULL WHERE planned_for = ?',
+    ).run(today);
+    const plan = db.prepare('UPDATE tasks SET planned_for = ?, plan_position = ? WHERE id = ?');
+    taskIds.forEach((id, i) => plan.run(today, i, id));
+    return getPlan(db, today);
+  })();
+}
+
+/** The first planned task that isn't current yet. */
+export function nextTask(db: Db, today: string): { id: number; title: string } | null {
+  const row = db
+    .prepare(
+      `SELECT id, title FROM tasks WHERE planned_for = ? AND status = 'inbox'
+       ORDER BY plan_position, id LIMIT 1`,
+    )
+    .get(today) as { id: number; title: string } | undefined;
+  return row ?? null;
 }
 
 // ---- Steps ----
@@ -439,10 +492,10 @@ function insertBlock(
 ): Block {
   const { lastInsertRowid } = db
     .prepare(
-      `INSERT INTO focus_blocks (step_id, workday_id, started_at, planned_seconds)
-       VALUES (?, ?, ?, ?)`,
+      `INSERT INTO focus_blocks (step_id, workday_id, started_at, planned_seconds, base_seconds)
+       VALUES (?, ?, ?, ?, ?)`,
     )
-    .run(stepId, workdayId, iso(now), plannedSeconds);
+    .run(stepId, workdayId, iso(now), plannedSeconds, plannedSeconds);
   return toBlock(db.prepare(`${BLOCK_SELECT} WHERE fb.id = ?`).get(lastInsertRowid) as BlockRow);
 }
 
@@ -495,13 +548,9 @@ export function finishBlock(
       ).run(iso(now), block.step_id);
     }
     if (outcome === 'keep_going' && block.step_id !== null) {
-      const next = insertBlock(
-        db,
-        block.step_id,
-        block.workday_id,
-        now,
-        settings.focusMinutes * 60,
-      );
+      // Same length as the block you chose, without its +5 mins.
+      const seconds = block.base_seconds ?? settings.focusMinutes * 60;
+      const next = insertBlock(db, block.step_id, block.workday_id, now, seconds);
       return { next, break: null };
     }
     if (earnsBreak(outcome, timer(block), now)) {

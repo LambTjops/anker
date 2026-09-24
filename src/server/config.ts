@@ -42,5 +42,6 @@ export function defaultSettings(config: Config): Settings {
     breakMinutes: 5,
     longBreakMinutes: 15,
     longBreakEvery: 4,
+    headsUp: true,
   };
 }

@@ -301,6 +301,61 @@ textarea::placeholder {
   white-space: nowrap;
 }
 
+/* Today's plan: a numbered pick instead of a checkbox, so order is visible. */
+.pick {
+  justify-content: flex-start;
+  gap: 0.75rem;
+}
+
+.pick > span:nth-child(2) {
+  flex: 1;
+}
+
+.pick-mark {
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.picked {
+  border-color: var(--accent);
+}
+
+.picked .pick-mark {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.lengths {
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: var(--tap);
+  cursor: pointer;
+}
+
+.check input {
+  width: 1.4rem;
+  height: 1.4rem;
+  accent-color: var(--accent);
+}
+
+.park {
+  width: min(28rem, 100%);
+}
+
 .step-row {
   display: flex;
   align-items: center;
@@ -455,6 +510,73 @@ textarea::placeholder {
   animation: fade 0.4s ease-out;
 }
 
+/* The done moment: a check that draws itself, then fades. Pointer events pass through. */
+.celebration {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.75rem;
+  pointer-events: none;
+  animation: celebrate 1.4s ease forwards;
+  z-index: 20;
+}
+
+.celebration svg {
+  width: 6rem;
+  height: 6rem;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.celebration circle {
+  fill: var(--bg);
+  opacity: 0.94;
+}
+
+.celebration path {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: draw 0.45s 0.1s ease-out forwards;
+}
+
+.celebration p {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--bg);
+  padding: 0.2rem 0.8rem;
+  border-radius: var(--radius);
+}
+
+@keyframes celebrate {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 @keyframes fade {
   from {
     opacity: 0;
@@ -468,5 +590,18 @@ textarea::placeholder {
   }
   .progress > div {
     transition: none;
+  }
+  .celebration {
+    animation: celebrate-still 1.4s step-end forwards;
+  }
+  .celebration path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes celebrate-still {
+  100% {
+    opacity: 0;
   }
 }

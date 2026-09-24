@@ -84,13 +84,17 @@ export const api = {
     request<Step>('PATCH', `/api/steps/${id}`, patch),
   deleteStep: (id: number) => request<void>('DELETE', `/api/steps/${id}`),
 
-  startBlock: () => request<Block>('POST', '/api/blocks'),
+  startBlock: (minutes?: number) =>
+    request<Block>('POST', '/api/blocks', minutes === undefined ? undefined : { minutes }),
   finishBlock: (id: number, outcome: BlockOutcome) =>
     request<FinishResult>('POST', `/api/blocks/${id}/finish`, { outcome }),
   extendBlock: (id: number) => request<Block>('POST', `/api/blocks/${id}/extend`),
 
   extendBreak: (id: number) => request<Break>('POST', `/api/breaks/${id}/extend`),
   endBreak: (id: number) => request<void>('POST', `/api/breaks/${id}/end`),
+
+  plan: () => request<Task[]>('GET', '/api/plan'),
+  setPlan: (taskIds: number[]) => request<Task[]>('PUT', '/api/plan', { taskIds }),
 
   settings: () => request<Settings>('GET', '/api/settings'),
   updateSettings: (patch: Partial<Settings>) => request<Settings>('PATCH', '/api/settings', patch),

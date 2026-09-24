@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import type { Step, Task as TaskT } from '../../shared/api.ts';
 import { api } from '../api.ts';
+import { celebrate } from '../components/Celebration.tsx';
 import { go, useAction } from '../hooks.ts';
 
 /** Planning a task: the only screen where a list of steps is visible. */
@@ -180,7 +181,10 @@ export function Task({ id }: { id: number }) {
             onClick={() =>
               act(
                 () => api.updateTask(id, { status: 'done' }),
-                () => go('#inbox'),
+                () => {
+                  celebrate('Task done.');
+                  go('#inbox');
+                },
               )
             }
           >

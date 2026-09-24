@@ -2,15 +2,17 @@ import type { Break as BreakT } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { mmss, useCountdown } from '../countdown.ts';
 import { useAction } from '../hooks.ts';
-import { signalTimerEnd } from '../signal.ts';
+import { signalTimerEnd, softCue } from '../signal.ts';
 
 /** A break between focus blocks. When it runs out, Now comes back; nothing starts itself. */
 export function Break({
   brk,
+  headsUp,
   refresh,
   onOver,
 }: {
   brk: BreakT;
+  headsUp: boolean;
   refresh: () => Promise<void>;
   onOver: () => void;
 }) {
@@ -31,6 +33,7 @@ export function Break({
       void leave();
     },
     (clock) => (clock ? `${clock} · Break · Anker` : 'Anker'),
+    headsUp && brk.plannedSeconds >= 5 * 60 ? softCue : undefined,
   );
 
   const extend = () =>

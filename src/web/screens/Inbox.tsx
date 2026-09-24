@@ -3,17 +3,36 @@ import type { Task } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { Capture } from '../components/Capture.tsx';
 import { go } from '../hooks.ts';
+import { splitByAge } from '../later.ts';
 
 export function Inbox() {
   const [tasks, setTasks] = useState<Task[] | null>(null);
+  const [planned, setPlanned] = useState<Set<number>>(new Set());
+  const [showOlder, setShowOlder] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api
-      .tasks()
-      .then(setTasks)
+    Promise.all([api.tasks(), api.plan()])
+      .then(([all, plan]) => {
+        setTasks(all);
+        setPlanned(new Set(plan.map((t) => t.id)));
+      })
       .catch(() => setError("Can't reach Anker right now."));
   }, []);
+
+  const { recent, older } = splitByAge(tasks ?? [], planned);
+  const item = (t: Task) => (
+    <li key={t.id}>
+      <button class="list-item" onClick={() => go(`#task/${t.id}`)}>
+        <span>{t.title}</span>
+        {t.status === 'current' ? (
+          <span class="tag">current</span>
+        ) : (
+          planned.has(t.id) && <span class="tag">today</span>
+        )}
+      </button>
+    </li>
+  );
 
   return (
     <main class="screen">
@@ -34,17 +53,21 @@ export function Inbox() {
       <section class="section">
         {error && <p class="note">{error}</p>}
         {tasks && tasks.length === 0 && <p class="note">Nothing here yet.</p>}
+        {recent.length > 0 && <ul class="list">{recent.map(item)}</ul>}
+        {older.length > 0 &&
+          (showOlder ? (
+            <ul class="list">{older.map(item)}</ul>
+          ) : (
+            <button class="quiet" onClick={() => setShowOlder(true)}>
+              Show older tasks
+            </button>
+          ))}
         {tasks && tasks.length > 0 && (
-          <ul class="list">
-            {tasks.map((t) => (
-              <li key={t.id}>
-                <button class="list-item" onClick={() => go(`#task/${t.id}`)}>
-                  <span>{t.title}</span>
-                  {t.status === 'current' && <span class="tag">current</span>}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div class="stack" style={{ paddingTop: '1rem' }}>
+            <button class="quiet" onClick={() => go('#plan')}>
+              Plan today
+            </button>
+          </div>
         )}
       </section>
 
