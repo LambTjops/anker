@@ -13,7 +13,7 @@ pnpm dev        # API on :3000 (node --watch), Vite on :5173 with /api proxied
 pnpm check      # lint + format + typecheck + tests
 ```
 
-Handy for testing the timer: `FOCUS_MINUTES=1 pnpm dev`.
+Handy for testing the timers: set them to 1 minute in ⋯ → Timer settings (`FOCUS_MINUTES=1 pnpm dev` only seeds a fresh database).
 
 ## Deploy (homelab, behind SWAG)
 
@@ -93,7 +93,7 @@ Replace the `networks:` block in `compose.yaml` with `ports: ['127.0.0.1:3000:30
 | --------------- | ------------------ | ---------------------------------------------------- |
 | `TZ_DISPLAY`    | `Pacific/Auckland` | Time zone for "today" and the cutoff                 |
 | `DAY_CUTOFF`    | `04:00`            | An open workday is closed quietly at this local time |
-| `FOCUS_MINUTES` | `25`               | Length of a focus block                              |
+| `FOCUS_MINUTES` | `25`               | First focus length; then set in ⋯ → Timer settings   |
 | `SWAG_NETWORK`  | `swag`             | Docker network shared with SWAG (compose only)       |
 | `DATA_DIR`      | `./data`           | Where `anker.db` lives (`/data` in the container)    |
 | `PORT`          | `3000`             | HTTP port                                            |

@@ -1,6 +1,16 @@
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { AppState, Block, Status, Step, Task, Today } from '../src/shared/api.ts';
+import type {
+  AppState,
+  Block,
+  Break,
+  FinishResult,
+  Settings,
+  Status,
+  Step,
+  Task,
+  Today,
+} from '../src/shared/api.ts';
 import { buildApp } from '../src/server/app.ts';
 import type { Config } from '../src/server/config.ts';
 import { openDb, type Db } from '../src/server/db/db.ts';
@@ -110,6 +120,124 @@ describe('the core loop', () => {
     await call('PATCH', `/api/steps/${steps[2]!.id}`, { position: 0 });
     const { body: after } = await call<Step[]>('GET', `/api/tasks/${task.id}/steps`);
     expect(after.map((s) => s.text)).toEqual(['C', 'A', 'B']);
+  });
+});
+
+describe('breaks and timers', () => {
+  async function runBlock(outcome: 'done' | 'stuck' | 'keep_going', minutes = 25) {
+    const { body: state } = await call<AppState>('GET', '/api/state');
+    const block = state.block ?? (await call<Block>('POST', '/api/blocks')).body;
+    advance(minutes);
+    return (await call<FinishResult>('POST', `/api/blocks/${block.id}/finish`, { outcome })).body;
+  }
+
+  it('done at time up starts a short break, which ends by itself', async () => {
+    await call('POST', '/api/workday/start');
+    await setUpCurrentTask(['A', 'B']);
+    const result = await runBlock('done');
+    expect(result.break?.kind).toBe('short');
+    expect(result.break?.endsAt).toBe(new Date(clock.getTime() + 5 * 60_000).toISOString());
+
+    let { body: state } = await call<AppState>('GET', '/api/state');
+    expect(state.break?.id).toBe(result.break?.id);
+    advance(5);
+    ({ body: state } = await call<AppState>('GET', '/api/state'));
+    expect(state.break).toBeNull();
+    expect(state.currentStep?.text).toBe('B');
+    expect(state.block).toBeNull();
+  });
+
+  it('stopping early or keeping going does not start a break', async () => {
+    await call('POST', '/api/workday/start');
+    await setUpCurrentTask(['A', 'B']);
+    expect((await runBlock('keep_going')).break).toBeNull();
+    expect((await runBlock('done', 10)).break).toBeNull();
+  });
+
+  it('every fourth block earns a longer break', async () => {
+    await call('POST', '/api/workday/start');
+    await setUpCurrentTask(['A', 'B', 'C', 'D', 'E', 'F']);
+    const kinds: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const { break: brk } = await runBlock('done');
+      kinds.push(brk!.kind);
+      await call('POST', `/api/breaks/${brk!.id}/end`);
+    }
+    expect(kinds).toEqual(['short', 'short', 'short', 'long', 'short']);
+  });
+
+  it('keep going blocks count towards the longer break', async () => {
+    await call('POST', '/api/workday/start');
+    await setUpCurrentTask(['A']);
+    await runBlock('keep_going');
+    await runBlock('keep_going');
+    await runBlock('keep_going');
+    expect((await runBlock('done')).break?.kind).toBe('long');
+  });
+
+  it('+5 min extends a running block and a running break, but not a finished one', async () => {
+    await call('POST', '/api/workday/start');
+    await setUpCurrentTask(['A', 'B']);
+    const { body: block } = await call<Block>('POST', '/api/blocks');
+    advance(20);
+    const { body: longer } = await call<Block>('POST', `/api/blocks/${block.id}/extend`);
+    expect(longer.plannedSeconds).toBe(30 * 60);
+    advance(10);
+    const late = await call<{ error: { code: string } }>('POST', `/api/blocks/${block.id}/extend`);
+    expect(late.status).toBe(409);
+
+    const { body: result } = await call<FinishResult>('POST', `/api/blocks/${block.id}/finish`, {
+      outcome: 'done',
+    });
+    const { body: brk } = await call<Break>('POST', `/api/breaks/${result.break!.id}/extend`);
+    expect(brk.plannedSeconds).toBe(10 * 60);
+  });
+
+  it('skipping a break or starting a block ends it', async () => {
+    await call('POST', '/api/workday/start');
+    await setUpCurrentTask(['A', 'B', 'C']);
+    const first = await runBlock('done');
+    expect((await call('POST', `/api/breaks/${first.break!.id}/end`)).status).toBe(204);
+    expect((await call<AppState>('GET', '/api/state')).body.break).toBeNull();
+
+    await runBlock('done');
+    await call('POST', '/api/blocks');
+    const { body: state } = await call<AppState>('GET', '/api/state');
+    expect(state.break).toBeNull();
+    expect(state.block).not.toBeNull();
+  });
+
+  it('settings change the next block and break lengths', async () => {
+    const { body: before } = await call<Settings>('GET', '/api/settings');
+    expect(before).toEqual({
+      focusMinutes: 25,
+      breakMinutes: 5,
+      longBreakMinutes: 15,
+      longBreakEvery: 4,
+    });
+    await call('PATCH', '/api/settings', { focusMinutes: 50, breakMinutes: 10 });
+    await call('POST', '/api/workday/start');
+    await setUpCurrentTask(['A']);
+    const { body: block } = await call<Block>('POST', '/api/blocks');
+    expect(block.plannedSeconds).toBe(50 * 60);
+    advance(50);
+    const { body } = await call<FinishResult>('POST', `/api/blocks/${block.id}/finish`, {
+      outcome: 'stuck',
+    });
+    expect(body.break?.plannedSeconds).toBe(10 * 60);
+
+    const bad = await call('PATCH', '/api/settings', { focusMinutes: 0 });
+    expect(bad.status).toBe(400);
+  });
+
+  it('ending the workday closes a running break', async () => {
+    await call('POST', '/api/workday/start');
+    await setUpCurrentTask(['A']);
+    await runBlock('done');
+    advance(2);
+    await call('POST', '/api/workday/end');
+    const { body } = await call<{ breaks: { ended_at: string }[] }>('GET', '/api/export');
+    expect(body.breaks[0]!.ended_at).toBe(clock.toISOString());
   });
 });
 

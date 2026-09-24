@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Settings } from '../shared/api.ts';
 import { isValidTimeZone } from '../shared/time.ts';
 
 const Env = z.object({
@@ -31,5 +32,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     tz: e.TZ_DISPLAY,
     cutoff: e.DAY_CUTOFF,
     focusSeconds: e.FOCUS_MINUTES * 60,
+  };
+}
+
+/** Timer lengths until the owner changes them in Settings. FOCUS_MINUTES sets the first. */
+export function defaultSettings(config: Config): Settings {
+  return {
+    focusMinutes: Math.round(config.focusSeconds / 60),
+    breakMinutes: 5,
+    longBreakMinutes: 15,
+    longBreakEvery: 4,
   };
 }

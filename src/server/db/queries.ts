@@ -2,7 +2,10 @@
 import type {
   Block,
   BlockOutcome,
+  Break,
   DoneItem,
+  FinishResult,
+  Settings,
   Status,
   Step,
   Task,
@@ -10,7 +13,16 @@ import type {
   Workday,
 } from '../../shared/api.ts';
 import { logicalDate, mostRecentCutoff } from '../../shared/time.ts';
-import { autoCloseAt, blockEndsAt, focusSeconds, type DayConfig } from '../domain/day.ts';
+import {
+  autoCloseAt,
+  blockEndsAt,
+  breakKind,
+  earnsBreak,
+  EXTEND_SECONDS,
+  focusSeconds,
+  isCountingDown,
+  type DayConfig,
+} from '../domain/day.ts';
 import { conflict, notFound } from '../errors.ts';
 import type { Db } from './db.ts';
 
@@ -56,6 +68,23 @@ interface BlockRow {
   step_text: string | null;
 }
 
+interface BreakRow {
+  id: number;
+  workday_id: number;
+  after_block_id: number | null;
+  kind: Break['kind'];
+  started_at: string;
+  planned_seconds: number;
+  ended_at: string | null;
+}
+
+interface SettingsRow {
+  focus_minutes: number;
+  break_minutes: number;
+  long_break_minutes: number;
+  long_break_every: number;
+}
+
 const toTask = (r: TaskRow): Task => ({
   id: r.id,
   title: r.title,
@@ -94,7 +123,53 @@ const toBlock = (r: BlockRow): Block => ({
   plannedSeconds: r.planned_seconds,
 });
 
+const toBreak = (r: BreakRow): Break => ({
+  id: r.id,
+  kind: r.kind,
+  startedAt: r.started_at,
+  endsAt: blockEndsAt({ startedAt: r.started_at, plannedSeconds: r.planned_seconds }).toISOString(),
+  plannedSeconds: r.planned_seconds,
+});
+
 const iso = (d: Date) => d.toISOString();
+
+const timer = (row: { started_at: string; planned_seconds: number; ended_at: string | null }) => ({
+  startedAt: row.started_at,
+  plannedSeconds: row.planned_seconds,
+  endedAt: row.ended_at,
+});
+
+/** Ends a block or break at `at`, or at its planned end if that came first. */
+const cappedEnd = (row: { started_at: string; planned_seconds: number }, at: Date): Date => {
+  const plannedEnd = blockEndsAt({
+    startedAt: row.started_at,
+    plannedSeconds: row.planned_seconds,
+  });
+  return plannedEnd < at ? plannedEnd : at;
+};
+
+// ---- Settings ----
+
+export function getSettings(db: Db, defaults: Settings): Settings {
+  const row = db.prepare('SELECT * FROM settings WHERE id = 1').get() as SettingsRow | undefined;
+  if (!row) return defaults;
+  return {
+    focusMinutes: row.focus_minutes,
+    breakMinutes: row.break_minutes,
+    longBreakMinutes: row.long_break_minutes,
+    longBreakEvery: row.long_break_every,
+  };
+}
+
+export function updateSettings(db: Db, defaults: Settings, patch: Partial<Settings>): Settings {
+  const next = { ...getSettings(db, defaults), ...patch };
+  db.prepare(
+    `INSERT OR REPLACE INTO settings
+       (id, focus_minutes, break_minutes, long_break_minutes, long_break_every)
+     VALUES (1, ?, ?, ?, ?)`,
+  ).run(next.focusMinutes, next.breakMinutes, next.longBreakMinutes, next.longBreakEvery);
+  return next;
+}
 
 // ---- Tasks ----
 
@@ -299,21 +374,23 @@ export function startWorkday(db: Db, now: Date, day: DayConfig): Workday {
   })();
 }
 
-/** Closes the open workday at `at`, abandoning any running block. No-op if none is open. */
+/** Closes the open workday at `at`, abandoning any running block or break. No-op if none is open. */
 export function endWorkday(db: Db, at: Date, reason: 'manual' | 'auto'): void {
   db.transaction(() => {
     const open = openWorkdayRow(db);
     if (!open) return;
     const block = openBlockRow(db);
     if (block) {
-      const plannedEnd = blockEndsAt({
-        startedAt: block.started_at,
-        plannedSeconds: block.planned_seconds,
-      });
-      const endedAt = plannedEnd < at ? plannedEnd : at;
       db.prepare("UPDATE focus_blocks SET ended_at = ?, outcome = 'abandoned' WHERE id = ?").run(
-        iso(endedAt),
+        iso(cappedEnd(block, at)),
         block.id,
+      );
+    }
+    const brk = openBreakRow(db);
+    if (brk) {
+      db.prepare('UPDATE breaks SET ended_at = ? WHERE id = ?').run(
+        iso(cappedEnd(brk, at)),
+        brk.id,
       );
     }
     db.prepare('UPDATE workdays SET ended_at = ?, end_reason = ? WHERE id = ?').run(
@@ -372,21 +449,23 @@ export function startBlock(db: Db, now: Date, plannedSeconds: number): Block {
     if (openBlockRow(db)) throw conflict('block_running', 'A block is already running');
     const { step } = currentTaskAndStep(db);
     if (!step) throw conflict('no_current_step', 'There is no current step to work on');
+    // Starting to work ends the break.
+    db.prepare('UPDATE breaks SET ended_at = ? WHERE ended_at IS NULL').run(iso(now));
     return insertBlock(db, step.id, workday.id, now, plannedSeconds);
   })();
 }
 
 /**
  * Finishes the running block. 'done' completes its step; 'keep_going' starts a fresh
- * block on the same step and returns it.
+ * block on the same step and returns it. Done or Stuck at time's up starts a break.
  */
 export function finishBlock(
   db: Db,
   id: number,
   outcome: BlockOutcome,
   now: Date,
-  plannedSeconds: number,
-): { next: Block | null } {
+  settings: Settings,
+): FinishResult {
   return db.transaction(() => {
     const block = openBlockRow(db);
     if (!block || block.id !== id) {
@@ -403,10 +482,97 @@ export function finishBlock(
       ).run(iso(now), block.step_id);
     }
     if (outcome === 'keep_going' && block.step_id !== null) {
-      return { next: insertBlock(db, block.step_id, block.workday_id, now, plannedSeconds) };
+      const next = insertBlock(
+        db,
+        block.step_id,
+        block.workday_id,
+        now,
+        settings.focusMinutes * 60,
+      );
+      return { next, break: null };
     }
-    return { next: null };
+    if (earnsBreak(outcome, timer(block), now)) {
+      return { next: null, break: startBreak(db, block, now, settings) };
+    }
+    return { next: null, break: null };
   })();
+}
+
+/** "+5 min" on a running block. */
+export function extendBlock(db: Db, id: number, now: Date): Block {
+  const block = openBlockRow(db);
+  if (!block || block.id !== id || !isCountingDown(timer(block), now)) {
+    throw conflict('block_not_running', 'That block is not counting down');
+  }
+  db.prepare('UPDATE focus_blocks SET planned_seconds = planned_seconds + ? WHERE id = ?').run(
+    EXTEND_SECONDS,
+    id,
+  );
+  return toBlock(db.prepare(`${BLOCK_SELECT} WHERE fb.id = ?`).get(id) as BlockRow);
+}
+
+// ---- Breaks ----
+
+function openBreakRow(db: Db): BreakRow | undefined {
+  return db
+    .prepare('SELECT * FROM breaks WHERE ended_at IS NULL ORDER BY id DESC LIMIT 1')
+    .get() as BreakRow | undefined;
+}
+
+export function openBreak(db: Db): Break | null {
+  const row = openBreakRow(db);
+  return row ? toBreak(row) : null;
+}
+
+function startBreak(db: Db, after: BlockRow, now: Date, settings: Settings): Break {
+  const lastLong = db
+    .prepare("SELECT MAX(started_at) FROM breaks WHERE workday_id = ? AND kind = 'long'")
+    .pluck()
+    .get(after.workday_id) as string | null;
+  const blocksSince = db
+    .prepare(
+      `SELECT COUNT(*) FROM focus_blocks
+       WHERE workday_id = ? AND outcome IN ('done', 'stuck', 'keep_going') AND started_at > ?`,
+    )
+    .pluck()
+    .get(after.workday_id, lastLong ?? '') as number;
+  const kind = breakKind(blocksSince, settings.longBreakEvery);
+  const minutes = kind === 'long' ? settings.longBreakMinutes : settings.breakMinutes;
+  const { lastInsertRowid } = db
+    .prepare(
+      `INSERT INTO breaks (workday_id, after_block_id, kind, started_at, planned_seconds)
+       VALUES (?, ?, ?, ?, ?)`,
+    )
+    .run(after.workday_id, after.id, kind, iso(now), minutes * 60);
+  return toBreak(db.prepare('SELECT * FROM breaks WHERE id = ?').get(lastInsertRowid) as BreakRow);
+}
+
+/** "+5 min" on a running break. */
+export function extendBreak(db: Db, id: number, now: Date): Break {
+  const row = openBreakRow(db);
+  if (!row || row.id !== id || !isCountingDown(timer(row), now)) {
+    throw conflict('break_not_running', 'That break is not counting down');
+  }
+  db.prepare('UPDATE breaks SET planned_seconds = planned_seconds + ? WHERE id = ?').run(
+    EXTEND_SECONDS,
+    id,
+  );
+  return toBreak(db.prepare('SELECT * FROM breaks WHERE id = ?').get(id) as BreakRow);
+}
+
+/** Ends the break now ("Skip break"). */
+export function endBreak(db: Db, id: number, now: Date): void {
+  const row = openBreakRow(db);
+  if (!row || row.id !== id) throw conflict('break_not_open', 'That break is not running');
+  db.prepare('UPDATE breaks SET ended_at = ? WHERE id = ?').run(iso(cappedEnd(row, now)), id);
+}
+
+/** Closes a break whose time has run out. Called before every API request. */
+export function settleBreak(db: Db, now: Date): void {
+  const row = openBreakRow(db);
+  if (row && blockEndsAt(timer(row)) <= now) {
+    db.prepare('UPDATE breaks SET ended_at = ? WHERE id = ?').run(iso(cappedEnd(row, now)), row.id);
+  }
 }
 
 // ---- Today & status ----
@@ -439,6 +605,7 @@ export function status(db: Db, now: Date, day: DayConfig): Status {
     0,
   );
   const active = openBlock(db);
+  const activeBreak = openBreak(db);
   const stepsCompleted = db
     .prepare("SELECT COUNT(*) FROM steps WHERE status = 'done' AND done_at >= ?")
     .pluck()
@@ -450,6 +617,9 @@ export function status(db: Db, now: Date, day: DayConfig): Status {
     stepsCompleted,
     focusMinutes: Math.floor(seconds / 60),
     activeBlock: active ? { startedAt: active.startedAt, endsAt: active.endsAt } : null,
+    activeBreak: activeBreak
+      ? { kind: activeBreak.kind, startedAt: activeBreak.startedAt, endsAt: activeBreak.endsAt }
+      : null,
   };
 }
 
@@ -465,5 +635,7 @@ export function exportAll(db: Db, now: Date): Record<string, unknown> {
     steps: all('steps'),
     workdays: all('workdays'),
     focusBlocks: all('focus_blocks'),
+    breaks: all('breaks'),
+    settings: all('settings'),
   };
 }

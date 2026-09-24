@@ -59,6 +59,7 @@ export function Menu({ taskId, onEnded }: { taskId: number | null; onEnded: () =
                 {taskId !== null && (
                   <button onClick={() => go(`#task/${taskId}`)}>Edit this task's steps</button>
                 )}
+                <button onClick={() => go('#settings')}>Timer settings</button>
                 <button onClick={() => setConfirming(true)}>End workday</button>
                 <button class="quiet" onClick={close}>
                   Close

@@ -46,6 +46,16 @@ export const UpdateStepBody = z
 
 export const FinishBlockBody = z.object({ outcome: BlockOutcome });
 
+export const UpdateSettingsBody = z
+  .object({
+    focusMinutes: z.number().int().min(1).max(180).optional(),
+    breakMinutes: z.number().int().min(1).max(60).optional(),
+    longBreakMinutes: z.number().int().min(1).max(120).optional(),
+    /** A long break after this many focus blocks; 0 turns long breaks off. */
+    longBreakEvery: z.number().int().min(0).max(12).optional(),
+  })
+  .refine((b) => Object.keys(b).length > 0, 'Nothing to update');
+
 // ---- Response types ----
 
 export interface Task {
@@ -86,6 +96,29 @@ export interface Block {
   plannedSeconds: number;
 }
 
+export interface Break {
+  id: number;
+  kind: 'short' | 'long';
+  startedAt: string;
+  endsAt: string;
+  plannedSeconds: number;
+}
+
+export interface Settings {
+  focusMinutes: number;
+  breakMinutes: number;
+  longBreakMinutes: number;
+  longBreakEvery: number;
+}
+
+/** POST /api/blocks/:id/finish */
+export interface FinishResult {
+  /** The fresh block after 'keep_going'. */
+  next: Block | null;
+  /** The break that started because the block ran its full time. */
+  break: Break | null;
+}
+
 export interface DoneItem {
   stepId: number;
   text: string;
@@ -105,6 +138,7 @@ export interface AppState {
   /** Only ever the one current step. */
   currentStep: { id: number; text: string } | null;
   block: Block | null;
+  break: Break | null;
 }
 
 /** GET /api/today */
@@ -121,6 +155,7 @@ export interface Status {
   stepsCompleted: number;
   focusMinutes: number;
   activeBlock: { startedAt: string; endsAt: string } | null;
+  activeBreak: { kind: 'short' | 'long'; startedAt: string; endsAt: string } | null;
 }
 
 export interface ApiError {

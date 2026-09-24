@@ -1,15 +1,11 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import type { Block, BlockOutcome } from '../../shared/api.ts';
-import { api, serverNow } from '../api.ts';
+import { api } from '../api.ts';
+import { mmss, useCountdown } from '../countdown.ts';
 import { useAction } from '../hooks.ts';
-import { signalBlockEnd } from '../signal.ts';
+import { signalTimerEnd } from '../signal.ts';
 
 type Phase = 'running' | 'stopping' | 'stuck';
-
-function mmss(ms: number): string {
-  const total = Math.ceil(ms / 1000);
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
-}
 
 /** A running (or finished) focus block on one step. */
 export function Focus({
@@ -23,47 +19,28 @@ export function Focus({
   refresh: () => Promise<void>;
   onDone: () => void;
 }) {
-  const endsAt = new Date(block.endsAt).getTime();
-  const [now, setNow] = useState(serverNow);
   const [phase, setPhase] = useState<Phase>('running');
   const [smaller, setSmaller] = useState('');
   const { busy, error, run } = useAction();
-
-  const remaining = Math.max(0, endsAt - now);
-  const over = remaining === 0;
   const stepText = block.stepText ?? 'This step';
 
-  // Display tick. Background tabs may throttle this; the one-shot below fires on time.
-  useEffect(() => {
-    const tick = setInterval(() => setNow(serverNow()), 1000);
-    return () => clearInterval(tick);
-  }, []);
-
-  useEffect(() => {
-    const ms = endsAt - serverNow();
-    if (ms <= 0) return;
-    const t = setTimeout(() => {
-      setNow(serverNow());
-      signalBlockEnd(stepText);
-    }, ms);
-    return () => clearTimeout(t);
-  }, [block.id, endsAt, stepText]);
-
-  const seconds = Math.ceil(remaining / 1000);
-  useEffect(() => {
-    document.title = over ? "Time's up · Anker" : `${mmss(seconds * 1000)} · Anker`;
-  }, [over, seconds]);
-  useEffect(
-    () => () => {
-      document.title = 'Anker';
-    },
-    [],
+  const { remaining, over } = useCountdown(
+    block.endsAt,
+    () => signalTimerEnd('Block finished', stepText),
+    (clock) => (clock ? `${clock} · Anker` : "Time's up · Anker"),
   );
 
   const finish = (outcome: BlockOutcome) =>
     run(async () => {
-      await api.finishBlock(block.id, outcome);
-      if (outcome === 'done') onDone();
+      const result = await api.finishBlock(block.id, outcome);
+      // With a break coming, the flash would fade before Now shows again.
+      if (outcome === 'done' && !result.break) onDone();
+      await refresh();
+    });
+
+  const extend = () =>
+    run(async () => {
+      await api.extendBlock(block.id);
       await refresh();
     });
 
@@ -153,6 +130,9 @@ export function Focus({
         </div>
       ) : (
         <div class="stack">
+          <button class="quiet" disabled={busy} onClick={extend}>
+            +5 min
+          </button>
           <button class="quiet" onClick={() => setPhase('stopping')}>
             Stop early
           </button>

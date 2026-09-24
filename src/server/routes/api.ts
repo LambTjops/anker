@@ -5,13 +5,14 @@ import {
   FinishBlockBody,
   IdParams,
   ListTasksQuery,
+  UpdateSettingsBody,
   UpdateStepBody,
   UpdateTaskBody,
   type AppState,
   type Today,
 } from '../../shared/api.ts';
 import { logicalDate, mostRecentCutoff } from '../../shared/time.ts';
-import type { Config } from '../config.ts';
+import { defaultSettings, type Config } from '../config.ts';
 import type { Db } from '../db/db.ts';
 import * as q from '../db/queries.ts';
 
@@ -23,9 +24,14 @@ export interface ApiDeps {
 
 export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps): void {
   const day = { tz: config.tz, cutoff: config.cutoff };
+  const defaults = defaultSettings(config);
+  const settings = () => q.getSettings(db, defaults);
 
   app.addHook('onRequest', async (req) => {
-    if (req.url.startsWith('/api/')) q.autoClose(db, now(), day);
+    if (!req.url.startsWith('/api/')) return;
+    const at = now();
+    q.autoClose(db, at, day);
+    q.settleBreak(db, at);
   });
 
   const today = (at: Date): Today => ({
@@ -49,6 +55,7 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
       currentTask: task,
       currentStep: step,
       block: q.openBlock(db),
+      break: q.openBreak(db),
     };
   });
 
@@ -116,15 +123,38 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
 
   // ---- Focus blocks ----
 
-  app.post('/api/blocks', async (req, reply) =>
-    reply.code(201).send(q.startBlock(db, now(), config.focusSeconds)),
+  app.post('/api/blocks', async (_req, reply) =>
+    reply.code(201).send(q.startBlock(db, now(), settings().focusMinutes * 60)),
   );
 
   app.post('/api/blocks/:id/finish', async (req) => {
     const { id } = IdParams.parse(req.params);
     const { outcome } = FinishBlockBody.parse(req.body);
-    return q.finishBlock(db, id, outcome, now(), config.focusSeconds);
+    return q.finishBlock(db, id, outcome, now(), settings());
   });
+
+  app.post('/api/blocks/:id/extend', async (req) =>
+    q.extendBlock(db, IdParams.parse(req.params).id, now()),
+  );
+
+  // ---- Breaks ----
+
+  app.post('/api/breaks/:id/extend', async (req) =>
+    q.extendBreak(db, IdParams.parse(req.params).id, now()),
+  );
+
+  app.post('/api/breaks/:id/end', async (req, reply) => {
+    q.endBreak(db, IdParams.parse(req.params).id, now());
+    return reply.code(204).send();
+  });
+
+  // ---- Settings ----
+
+  app.get('/api/settings', async () => settings());
+
+  app.patch('/api/settings', async (req) =>
+    q.updateSettings(db, defaults, UpdateSettingsBody.parse(req.body)),
+  );
 
   // ---- Backup ----
 

@@ -4,6 +4,9 @@ import type {
   AppState,
   Block,
   BlockOutcome,
+  Break,
+  FinishResult,
+  Settings,
   Step,
   Task,
   TaskStatus,
@@ -83,5 +86,12 @@ export const api = {
 
   startBlock: () => request<Block>('POST', '/api/blocks'),
   finishBlock: (id: number, outcome: BlockOutcome) =>
-    request<{ next: Block | null }>('POST', `/api/blocks/${id}/finish`, { outcome }),
+    request<FinishResult>('POST', `/api/blocks/${id}/finish`, { outcome }),
+  extendBlock: (id: number) => request<Block>('POST', `/api/blocks/${id}/extend`),
+
+  extendBreak: (id: number) => request<Break>('POST', `/api/breaks/${id}/extend`),
+  endBreak: (id: number) => request<void>('POST', `/api/breaks/${id}/end`),
+
+  settings: () => request<Settings>('GET', '/api/settings'),
+  updateSettings: (patch: Partial<Settings>) => request<Settings>('PATCH', '/api/settings', patch),
 };

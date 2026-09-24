@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'preact/hooks';
 import type { AppState } from '../shared/api.ts';
 import { api } from './api.ts';
 import { useRoute } from './hooks.ts';
+import { Break } from './screens/Break.tsx';
 import { Focus } from './screens/Focus.tsx';
 import { Inbox } from './screens/Inbox.tsx';
 import { Now } from './screens/Now.tsx';
 import { Off } from './screens/Off.tsx';
+import { Settings } from './screens/Settings.tsx';
 import { Task } from './screens/Task.tsx';
 
 export function App() {
@@ -53,6 +55,7 @@ export function App() {
   let screen;
   if (route.name === 'inbox') screen = <Inbox />;
   else if (route.name === 'task') screen = <Task key={route.id} id={route.id} />;
+  else if (route.name === 'settings') screen = <Settings />;
   else if (!state) screen = <main class="screen" />;
   else if (state.mode === 'off') screen = <Off state={state} refresh={refresh} />;
   else if (state.block)
@@ -63,6 +66,15 @@ export function App() {
         taskId={state.currentTask?.id ?? null}
         refresh={refresh}
         onDone={() => setFlash("Done. Here's the next one.")}
+      />
+    );
+  else if (state.break)
+    screen = (
+      <Break
+        key={state.break.id}
+        brk={state.break}
+        refresh={refresh}
+        onOver={() => setFlash("Break's over.")}
       />
     );
   else screen = <Now state={state} flash={flash} refresh={refresh} />;

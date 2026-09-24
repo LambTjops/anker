@@ -228,6 +228,7 @@ button.icon {
 /* ---- Inputs ---- */
 
 input[type='text'],
+input[type='number'],
 textarea {
   font: inherit;
   width: 100%;
@@ -256,6 +257,14 @@ textarea::placeholder {
 .title-input:focus {
   border-color: var(--line);
   padding-left: 1rem;
+}
+
+/* A labelled input: the label above, quieter. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: var(--muted);
 }
 
 /* ---- Lists ---- */

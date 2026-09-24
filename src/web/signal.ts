@@ -1,4 +1,4 @@
-// The end-of-block signal: a soft chime, a short vibration, and a local notification
+// The end-of-timer signal (a block or a break): a soft chime, a short vibration, and a local notification
 // when the tab isn't visible. No push server. Audio must be unlocked from a tap first.
 
 let audio: AudioContext | null = null;
@@ -38,21 +38,21 @@ function chime(): void {
   });
 }
 
-async function notify(body: string): Promise<void> {
+async function notify(title: string, body: string): Promise<void> {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   const options: NotificationOptions = { body, tag: 'anker-block', icon: '/icons/icon-192.png' };
   try {
     // Android Chrome only allows notifications through the service worker.
     const reg = await navigator.serviceWorker?.getRegistration();
-    if (reg) await reg.showNotification('Block finished', options);
-    else new Notification('Block finished', options);
+    if (reg) await reg.showNotification(title, options);
+    else new Notification(title, options);
   } catch {
     // Best effort only.
   }
 }
 
-export function signalBlockEnd(stepText: string): void {
+export function signalTimerEnd(title: string, body: string): void {
   chime();
   navigator.vibrate?.([120, 80, 120]);
-  if (document.visibilityState !== 'visible') void notify(stepText);
+  if (document.visibilityState !== 'visible') void notify(title, body);
 }
