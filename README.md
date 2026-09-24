@@ -47,6 +47,21 @@ Handy for testing the timer: `FOCUS_MINUTES=1 pnpm dev`.
 4. **Install on your phone:** open `https://anker.<your-domain>`, log in, then choose
    "Add to Home screen" (Android Chrome) or Share → "Add to Home Screen" (iOS Safari).
 
+### Production (anker.onsnet.nz)
+
+Production runs from a clone of this repo at `/docker/anker`. It is the `anker` service in the
+host's main `/docker/docker-compose.yml` (on SWAG's `onsnet` network), not this repo's `compose.yaml`.
+The data lives in `/docker/anker/data/anker.db`. The live SWAG conf is
+`/docker/swag/config/nginx/proxy-confs/anker.subdomain.conf`. Basic auth is **off there for now**
+while testing (see BRIEF §2).
+
+To update prod after any change, commit and push, then:
+
+```sh
+cd /docker/anker && git pull
+cd /docker && docker compose up -d --build anker
+```
+
 ### If SWAG is not in Docker on the same host
 
 Replace the `networks:` block in `compose.yaml` with `ports: ['127.0.0.1:3000:3000']`

@@ -83,6 +83,17 @@ docker/         Dockerfile, anker.subdomain.conf
 
 `pnpm check` must pass before any phase is declared done.
 
+## Shipping changes to prod
+
+After any change, ship it all the way to prod: run `pnpm check`, then commit, then push to `origin` (github.com/LambTjops/anker), then update prod:
+
+```sh
+cd /docker/anker && git pull
+cd /docker && docker compose up -d --build anker
+```
+
+Prod is the `anker` service in the host's main `/docker/docker-compose.yml` (network `onsnet`), not this repo's `compose.yaml`. It's live at https://anker.onsnet.nz. The live SWAG conf (`/docker/swag/config/nginx/proxy-confs/anker.subdomain.conf`) has basic auth **temporarily turned off** for testing. Don't turn it back on unless the owner asks.
+
 ## Brand
 
 The user-facing name is always **Anker**. In code, env and URLs it is lowercase `anker`.

@@ -20,15 +20,15 @@ Phase 2 adds a **breakdown coach** (Claude API) that turns vague tasks into 5–
 
 ## 2. Decisions locked
 
-| Decision          | Choice                                                                                 | Notes                                                                                                               |
-| ----------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Primary device    | Laptop browser first, phone PWA second                                                 | Layout is mobile-first but must feel calm on a wide screen too.                                                     |
-| Access protection | **HTTP basic auth in SWAG**                                                            | The container publishes no port. It sits on SWAG's Docker network, so SWAG is the only way in (§8).                 |
-| Phase 1 steps     | **Typed up front per task**                                                            | Planning happens on the Task screen, where the list is visible. The Now screen only ever shows the first open step. |
-| Timer end signal  | Chime, plus a local browser notification if allowed, plus a countdown in the tab title | Not Web Push. If the tab is closed or the phone is locked, the Done/Stuck/Keep going choice is waiting on return.   |
-| Day boundary      | **Auto-close quietly at 04:00** (configurable)                                         | An open workday is closed at the cutoff with `end_reason='auto'`. No "you forgot" copy, ever.                       |
-| Language          | English                                                                                | UI and coach.                                                                                                       |
-| Time zone         | `Pacific/Auckland` (env `TZ_DISPLAY`)                                                  | DB stores UTC.                                                                                                      |
+| Decision          | Choice                                                                                 | Notes                                                                                                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Primary device    | Laptop browser first, phone PWA second                                                 | Layout is mobile-first but must feel calm on a wide screen too.                                                                                                               |
+| Access protection | **HTTP basic auth in SWAG**                                                            | The container publishes no port. It sits on SWAG's Docker network, so SWAG is the only way in (§8). **Turned off in prod for testing (2026-09-25); revisit before real use.** |
+| Phase 1 steps     | **Typed up front per task**                                                            | Planning happens on the Task screen, where the list is visible. The Now screen only ever shows the first open step.                                                           |
+| Timer end signal  | Chime, plus a local browser notification if allowed, plus a countdown in the tab title | Not Web Push. If the tab is closed or the phone is locked, the Done/Stuck/Keep going choice is waiting on return.                                                             |
+| Day boundary      | **Auto-close quietly at 04:00** (configurable)                                         | An open workday is closed at the cutoff with `end_reason='auto'`. No "you forgot" copy, ever.                                                                                 |
+| Language          | English                                                                                | UI and coach.                                                                                                                                                                 |
+| Time zone         | `Pacific/Auckland` (env `TZ_DISPLAY`)                                                  | DB stores UTC.                                                                                                                                                                |
 
 ---
 
