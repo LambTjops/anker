@@ -79,6 +79,9 @@ Replace the `networks:` block in `compose.yaml` with `ports: ['127.0.0.1:3000:30
   For a nightly run, add this to the host's crontab:
   `0 5 * * * cd /path/to/anker && docker compose exec -T anker node src/server/backup.ts`
 
+  In prod this is already set up in `zandberg`'s crontab. It runs at 03:15 from `/docker`,
+  writes into `/docker/anker/data/backups/` and logs to `/docker/anker/data/backup.log`.
+
 - **Restore:**
 
   ```sh

@@ -64,6 +64,7 @@ export function App() {
         key={state.block.id}
         block={state.block}
         taskId={state.currentTask?.id ?? null}
+        taskTitle={state.currentTask?.title ?? null}
         refresh={refresh}
         onDone={() => setFlash("Done. Here's the next one.")}
       />

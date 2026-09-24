@@ -115,9 +115,12 @@ export function Now({
       ) : (
         <>
           {flash && <p class="note fade-in">{flash}</p>}
-          <h1 class="step-text fade-in" key={step.id}>
-            {step.text}
-          </h1>
+          <div class="stack" style={{ gap: '0.5rem' }}>
+            {task.title !== step.text && <p class="task-label">{task.title}</p>}
+            <h1 class="step-text fade-in" key={step.id}>
+              {step.text}
+            </h1>
+          </div>
           <div class="stack">
             <button class="primary big" disabled={busy} onClick={start}>
               Start

@@ -11,11 +11,13 @@ type Phase = 'running' | 'stopping' | 'stuck';
 export function Focus({
   block,
   taskId,
+  taskTitle,
   refresh,
   onDone,
 }: {
   block: Block;
   taskId: number | null;
+  taskTitle: string | null;
   refresh: () => Promise<void>;
   onDone: () => void;
 }) {
@@ -90,13 +92,16 @@ export function Focus({
 
   return (
     <main class="screen centred">
-      <p class="lead">{stepText}</p>
+      <div class="stack" style={{ gap: '0.5rem' }}>
+        {taskTitle && taskTitle !== stepText && <p class="task-label">{taskTitle}</p>}
+        <h1 class="step-text">{stepText}</h1>
+      </div>
 
       {over ? (
-        <h1 class="headline fade-in">Time's up. How did it go?</h1>
+        <p class="headline fade-in">Time's up. How did it go?</p>
       ) : (
         <div class="stack" style={{ gap: '1rem' }}>
-          <p class="timer" role="timer" aria-live="off">
+          <p class="timer focus-timer" role="timer" aria-live="off">
             {mmss(remaining)}
           </p>
           <div class="progress" aria-hidden="true">
