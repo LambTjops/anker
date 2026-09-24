@@ -134,7 +134,8 @@ export interface AppState {
   mode: 'on' | 'off';
   /** When off: 'ended' if today's workday was ended by hand, otherwise 'not_started'. */
   offReason: 'ended' | 'not_started' | null;
-  currentTask: { id: number; title: string } | null;
+  /** `hasSteps` is false for a task that was never broken down: it can be started as is. */
+  currentTask: { id: number; title: string; hasSteps: boolean } | null;
   /** Only ever the one current step. */
   currentStep: { id: number; text: string } | null;
   block: Block | null;

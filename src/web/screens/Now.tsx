@@ -1,3 +1,4 @@
+import { useState } from 'preact/hooks';
 import type { AppState } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { Menu } from '../components/Menu.tsx';
@@ -16,6 +17,8 @@ export function Now({
 }) {
   const { busy, error, run } = useAction();
   const { currentTask: task, currentStep: step } = state;
+  const [breakingDown, setBreakingDown] = useState(false);
+  const [firstStep, setFirstStep] = useState('');
 
   const start = () =>
     run(async () => {
@@ -23,6 +26,18 @@ export function Now({
       await api.startBlock();
       await refresh();
     });
+
+  const addFirstStep = (e: Event) => {
+    e.preventDefault();
+    const text = firstStep.trim();
+    if (!text || !task) return;
+    void run(async () => {
+      await api.addSteps(task.id, [text]);
+      setFirstStep('');
+      setBreakingDown(false);
+      await refresh();
+    });
+  };
 
   const finishTask = () =>
     run(async () => {
@@ -44,6 +59,46 @@ export function Now({
             </button>
           </div>
         </>
+      ) : !step && !task.hasSteps ? (
+        breakingDown ? (
+          <>
+            <p class="lead">{task.title}</p>
+            <h1 class="headline">What's the first step?</h1>
+            <form class="stack" onSubmit={addFirstStep}>
+              <input
+                type="text"
+                value={firstStep}
+                onInput={(e) => setFirstStep(e.currentTarget.value)}
+                placeholder="Something small you can start on"
+                autoFocus
+                enterKeyHint="done"
+                maxLength={500}
+              />
+              <div class="row">
+                <button class="primary" type="submit" disabled={busy || !firstStep.trim()}>
+                  Add step
+                </button>
+                <button class="quiet" type="button" onClick={() => setBreakingDown(false)}>
+                  Back
+                </button>
+              </div>
+            </form>
+          </>
+        ) : (
+          <>
+            <h1 class="step-text fade-in" key={`task-${task.id}`}>
+              {task.title}
+            </h1>
+            <div class="stack">
+              <button class="primary big" disabled={busy} onClick={start}>
+                Start
+              </button>
+              <button class="quiet" onClick={() => setBreakingDown(true)}>
+                Break it down first
+              </button>
+            </div>
+          </>
+        )
       ) : !step ? (
         <>
           <h1 class="headline">That task is clear.</h1>

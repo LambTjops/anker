@@ -94,7 +94,8 @@ The Now screen shows one thing. Everything else is one quiet tap away, behind a 
 
 1. **Now**: the current step in large type and a **Start** button. Nothing else.
    - No current task: "Nothing picked yet" and a link to the Inbox.
-   - Task has no open steps: "That task is clear", with "Add a step" and "Mark task done".
+   - Task was never broken down: its title and **Start**. The task itself becomes its one step. A quiet "Break it down first" asks "What's the first step?" instead.
+   - Task has no open steps left: "That task is clear", with "Add a step" and "Mark task done".
 2. **Focus**: the step text and a calm countdown. "Stop early" is small and low-contrast. When time is up: **Done** / **Stuck** / **Keep going**.
    - In Phase 1, **Stuck** asks "What's a smaller first move?" and inserts what you type _in front of_ the stuck step (`parent_step_id` points at it). The stuck step comes back once the small move is done. In Phase 2 the coach takes this over.
    - **Stop early** offers Done / Stuck / Stop for now / Back to the timer.
@@ -132,7 +133,7 @@ Everything the UI does goes through this JSON API. The UI has no special endpoin
 | `POST /api/tasks/:id/steps`                     | `{ text }` or `{ texts: [] }`                                                                                          |
 | `PATCH /api/steps/:id`                          | Text, status, `position`                                                                                               |
 | `DELETE /api/steps/:id`                         | Delete a step                                                                                                          |
-| `POST /api/blocks`                              | Start a block on the current step                                                                                      |
+| `POST /api/blocks`                              | Start a block on the current step (a task with no steps gets its title as its one step)                                |
 | `POST /api/blocks/:id/finish`                   | `{ outcome }` → `{ next, break }`                                                                                      |
 | `POST /api/blocks/:id/extend`                   | +5 min on the running block                                                                                            |
 | `POST /api/breaks/:id/extend`                   | +5 min on the running break                                                                                            |

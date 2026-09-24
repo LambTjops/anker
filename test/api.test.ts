@@ -50,7 +50,7 @@ afterEach(async () => {
 
 async function setUpCurrentTask(steps: string[]): Promise<Task> {
   const { body: task } = await call<Task>('POST', '/api/tasks', { title: 'Write report' });
-  await call('POST', `/api/tasks/${task.id}/steps`, { texts: steps });
+  if (steps.length > 0) await call('POST', `/api/tasks/${task.id}/steps`, { texts: steps });
   await call('POST', `/api/tasks/${task.id}/current`);
   return task;
 }
@@ -105,6 +105,25 @@ describe('the core loop', () => {
       'Write the summary',
     ]);
     expect(steps[0]!.parentStepId).toBe(stuckId);
+  });
+
+  it('starts a task that has no steps as its own single step', async () => {
+    await call('POST', '/api/workday/start');
+    const task = await setUpCurrentTask([]);
+    let { body: state } = await call<AppState>('GET', '/api/state');
+    expect(state.currentTask?.hasSteps).toBe(false);
+    expect(state.currentStep).toBeNull();
+
+    const { body: block } = await call<Block>('POST', '/api/blocks');
+    expect(block.stepText).toBe('Write report');
+    advance(25);
+    await call('POST', `/api/blocks/${block.id}/finish`, { outcome: 'done' });
+
+    ({ body: state } = await call<AppState>('GET', '/api/state'));
+    expect(state.currentTask).toEqual({ id: task.id, title: 'Write report', hasSteps: true });
+    expect(state.currentStep).toBeNull();
+    const again = await call<{ error: { code: string } }>('POST', '/api/blocks');
+    expect(again.body.error.code).toBe('no_current_step');
   });
 
   it('refuses to start a block with no open workday', async () => {

@@ -325,12 +325,17 @@ export function deleteStep(db: Db, id: number): void {
 }
 
 export function currentTaskAndStep(db: Db): {
-  task: { id: number; title: string } | null;
+  task: { id: number; title: string; hasSteps: boolean } | null;
   step: { id: number; text: string } | null;
 } {
-  const task = db.prepare("SELECT id, title FROM tasks WHERE status = 'current'").get() as
-    { id: number; title: string } | undefined;
-  if (!task) return { task: null, step: null };
+  const row = db
+    .prepare(
+      `SELECT id, title, EXISTS (SELECT 1 FROM steps WHERE task_id = tasks.id) AS has_steps
+       FROM tasks WHERE status = 'current'`,
+    )
+    .get() as { id: number; title: string; has_steps: number } | undefined;
+  if (!row) return { task: null, step: null };
+  const task = { id: row.id, title: row.title, hasSteps: row.has_steps === 1 };
   const step = db
     .prepare(
       `SELECT id, text FROM steps WHERE task_id = ? AND status = 'todo'
@@ -441,13 +446,21 @@ function insertBlock(
   return toBlock(db.prepare(`${BLOCK_SELECT} WHERE fb.id = ?`).get(lastInsertRowid) as BlockRow);
 }
 
-/** Starts a block on the current step. */
+/**
+ * Starts a block on the current step. A task that was never broken down is worked on
+ * as is: its title becomes its one step.
+ */
 export function startBlock(db: Db, now: Date, plannedSeconds: number): Block {
   return db.transaction(() => {
     const workday = openWorkdayRow(db);
     if (!workday) throw conflict('workday_not_started', 'Start the workday first');
     if (openBlockRow(db)) throw conflict('block_running', 'A block is already running');
-    const { step } = currentTaskAndStep(db);
+    const current = currentTaskAndStep(db);
+    const step =
+      current.step ??
+      (current.task && !current.task.hasSteps
+        ? addSteps(db, current.task.id, [current.task.title], now)[0]!
+        : null);
     if (!step) throw conflict('no_current_step', 'There is no current step to work on');
     // Starting to work ends the break.
     db.prepare('UPDATE breaks SET ended_at = ? WHERE ended_at IS NULL').run(iso(now));
