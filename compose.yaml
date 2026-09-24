@@ -1,0 +1,23 @@
+name: anker
+
+services:
+  anker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: anker:latest
+    container_name: anker
+    restart: unless-stopped
+    env_file: .env
+    # Runs as the image's `node` user (uid 1000); ./data must be writable by it.
+    volumes:
+      - ./data:/data
+    # No `ports:` on purpose. SWAG reaches it as http://anker:3000 over its network,
+    # so there is no way in that skips basic auth.
+    networks:
+      - swag
+
+networks:
+  swag:
+    external: true
+    name: ${SWAG_NETWORK:-swag}
