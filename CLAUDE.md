@@ -12,6 +12,7 @@
 4. **The server owns time.** Timers and workday state are derived from server timestamps. The client only renders `endsAt - server_now`, adjusted for clock offset.
 5. **Spend is capped, always.** No Claude call bypasses `checkSpend()` and `logUsage()`. The API key never reaches the client, the logs or `/api/export`.
 6. **Work in phases.** Build the current phase only. Stop at the end of each phase for the owner to test. Don't build Phase 2 (or anything in BRIEF §10) early.
+7. **Serve the purpose.** Anker exists to help its ADHD owner focus, beat procrastination and get things done. Every feature must remove a decision or a tap, or break the procrastination loop. No bloat. `docs/ROADMAP.md` holds the proposed next phases, the anti-bloat rules and the decisions waiting on the owner. Nothing in it is approved until it moves into BRIEF.md.
 
 ---
 
@@ -41,6 +42,7 @@ src/server/     Fastify app, routes/, domain/, db/, coach/ (Phase 2)
 src/web/        Preact app: screens/, components/, api.ts, styles.css
 migrations/     001_init.sql, 002_… (append-only)
 prompts/        coach.md (Phase 2 system prompt)
+docs/           ROADMAP.md (proposals, not yet approved)
 docker/         Dockerfile, anker.subdomain.conf
 ```
 
