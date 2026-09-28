@@ -418,14 +418,25 @@ export function latestWorkdayFor(db: Db, localDate: string): Workday | null {
   return row ? toWorkday(row) : null;
 }
 
-/** Opens today's workday. Idempotent: returns the open one if there is one. */
+/**
+ * Opens today's workday. Idempotent: returns the open one if there is one.
+ * The first start of a day starts fresh: a task left current from an earlier day goes
+ * back to the inbox quietly, unless it's already on today's plan.
+ */
 export function startWorkday(db: Db, now: Date, day: DayConfig): Workday {
   return db.transaction(() => {
     const open = openWorkdayRow(db);
     if (open) return toWorkday(open);
+    const localDate = logicalDate(now, day.tz, day.cutoff);
+    if (!latestWorkdayFor(db, localDate)) {
+      db.prepare(
+        `UPDATE tasks SET status = 'inbox'
+         WHERE status = 'current' AND (planned_for IS NULL OR planned_for <> ?)`,
+      ).run(localDate);
+    }
     const { lastInsertRowid } = db
       .prepare('INSERT INTO workdays (local_date, started_at) VALUES (?, ?)')
-      .run(logicalDate(now, day.tz, day.cutoff), iso(now));
+      .run(localDate, iso(now));
     return toWorkday(
       db.prepare('SELECT * FROM workdays WHERE id = ?').get(lastInsertRowid) as WorkdayRow,
     );

@@ -38,10 +38,12 @@ export function Plan() {
   const current = tasks?.find((t) => t.status === 'current') ?? null;
   const first = tasks?.find((t) => t.id === picked[0]) ?? null;
   const full = picked.length >= PLAN_LIMIT;
+  // Offer to start the plan unless the current task is already on it.
+  const startFirst = first && !(current && picked.includes(current.id)) ? first : null;
 
   const begin = () =>
     run(async () => {
-      if (!current && first) await api.makeCurrent(first.id);
+      if (startFirst) await api.makeCurrent(startFirst.id);
       go('');
     });
 
@@ -102,9 +104,9 @@ export function Plan() {
       </section>
 
       <section class="section stack" style={{ marginTop: 'auto', paddingTop: '2rem' }}>
-        {!current && first ? (
+        {startFirst ? (
           <button class="primary big" disabled={busy} onClick={begin}>
-            Start with “{first.title}”
+            Start with “{startFirst.title}”
           </button>
         ) : (
           <button class="primary" onClick={() => go('')}>

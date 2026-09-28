@@ -309,6 +309,34 @@ describe("today's plan and starting", () => {
     expect((await call<AppState>('GET', '/api/state')).body.nextTask).toBeNull();
   });
 
+  it("starts a new day fresh: yesterday's current task goes back to the inbox", async () => {
+    await call('POST', '/api/workday/start');
+    const a = await task('A');
+    await call('POST', `/api/tasks/${a.id}/current`);
+    await call('POST', '/api/workday/end');
+
+    // Starting again the same day keeps it.
+    await call('POST', '/api/workday/start');
+    expect((await call<AppState>('GET', '/api/state')).body.currentTask?.id).toBe(a.id);
+
+    advance(24 * 60);
+    const b = await task('B');
+    await call('PUT', '/api/plan', { taskIds: [b.id] });
+    await call('POST', '/api/workday/start');
+    const { body: state } = await call<AppState>('GET', '/api/state');
+    expect(state.currentTask).toBeNull();
+    expect(state.nextTask).toEqual({ id: b.id, title: 'B' });
+    expect((await call<Task>('GET', `/api/tasks/${a.id}`)).body.status).toBe('inbox');
+  });
+
+  it("keeps a current task that is on today's plan when the day starts", async () => {
+    const a = await task('A');
+    await call('POST', `/api/tasks/${a.id}/current`);
+    await call('PUT', '/api/plan', { taskIds: [a.id] });
+    await call('POST', '/api/workday/start');
+    expect((await call<AppState>('GET', '/api/state')).body.currentTask?.id).toBe(a.id);
+  });
+
   it('starts a block of the length picked, and Keep going repeats it', async () => {
     await call('POST', '/api/workday/start');
     await setUpCurrentTask(['A']);
