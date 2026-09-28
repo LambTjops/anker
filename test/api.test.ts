@@ -130,6 +130,25 @@ describe('the core loop', () => {
     expect(again.body.error.code).toBe('no_current_step');
   });
 
+  it('breaks down a task mid-block: a real first step replaces the title', async () => {
+    await call('POST', '/api/workday/start');
+    const task = await setUpCurrentTask([]);
+    const { body: block } = await call<Block>('POST', '/api/blocks');
+    advance(3);
+    await call('POST', `/api/blocks/${block.id}/finish`, { outcome: 'abandoned' });
+    await call('POST', `/api/tasks/${task.id}/steps`, {
+      text: 'Open the doc',
+      beforeStepId: block.stepId,
+    });
+    await call('PATCH', `/api/steps/${block.stepId}`, { status: 'replaced' });
+
+    const { body: state } = await call<AppState>('GET', '/api/state');
+    expect(state.currentStep?.text).toBe('Open the doc');
+    expect(state.break).toBeNull();
+    const { body: steps } = await call<Step[]>('GET', `/api/tasks/${task.id}/steps`);
+    expect(steps.filter((s) => s.status === 'todo').map((s) => s.text)).toEqual(['Open the doc']);
+  });
+
   it('refuses to start a block with no open workday', async () => {
     await setUpCurrentTask(['Open the doc']);
     const res = await call<{ error: { code: string } }>('POST', '/api/blocks');

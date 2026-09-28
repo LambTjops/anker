@@ -80,7 +80,7 @@ export const api = {
     request<Step[]>('POST', `/api/tasks/${taskId}/steps`, { texts }),
   addStepBefore: (taskId: number, text: string, beforeStepId: number) =>
     request<Step[]>('POST', `/api/tasks/${taskId}/steps`, { text, beforeStepId }),
-  updateStep: (id: number, patch: { text?: string; status?: 'todo' | 'done'; position?: number }) =>
+  updateStep: (id: number, patch: { text?: string; status?: Step['status']; position?: number }) =>
     request<Step>('PATCH', `/api/steps/${id}`, patch),
   deleteStep: (id: number) => request<void>('DELETE', `/api/steps/${id}`),
 

@@ -6,7 +6,8 @@ export type Route =
   | { name: 'inbox' }
   | { name: 'plan' }
   | { name: 'settings' }
-  | { name: 'task'; id: number };
+  | { name: 'task'; id: number }
+  | { name: 'review'; n: number };
 
 function parseHash(hash: string): Route {
   if (hash === '#inbox') return { name: 'inbox' };
@@ -14,6 +15,8 @@ function parseHash(hash: string): Route {
   if (hash === '#plan') return { name: 'plan' };
   const task = /^#task\/(\d+)$/.exec(hash);
   if (task) return { name: 'task', id: Number(task[1]) };
+  const review = /^#review\/(\d+)$/.exec(hash);
+  if (review) return { name: 'review', n: Number(review[1]) };
   return { name: 'main' };
 }
 
@@ -27,7 +30,9 @@ export function useRoute(): Route {
   return route;
 }
 
-export function go(hash: '' | '#inbox' | '#plan' | '#settings' | `#task/${number}`): void {
+export function go(
+  hash: '' | '#inbox' | '#plan' | '#settings' | `#task/${number}` | `#review/${number}`,
+): void {
   if (hash === '') {
     // Drop the hash entirely so "/" stays clean.
     history.pushState(null, '', location.pathname);

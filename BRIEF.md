@@ -107,6 +107,7 @@ The Now screen shows one thing. Everything else is one quiet tap away, behind a 
 2. **Focus**: the step text and a calm countdown. "Stop early" is small and low-contrast. When time is up: **Done** / **Stuck** / **Keep going**.
    - In Phase 1, **Stuck** asks "What's a smaller first move?" and inserts what you type _in front of_ the stuck step (`parent_step_id` points at it). The stuck step comes back once the small move is done. In Phase 2 the coach takes this over.
    - **Stop early** offers Done / Stuck / Stop for now / Back to the timer.
+   - **Break it down** (added 2026-09-28): when a task was started as is (its title is the step), Stop early and time's up also offer "Break it down". It asks "What's the first step?", ends the block without a break, and the new step replaces the title step (`status='replaced'`).
    - A quiet **+5 min** sits under the countdown while it runs.
    - **Park a thought** (Phase 1c): one field that saves a stray thought to the inbox and returns straight to the timer.
    - **Heads-up** (Phase 1c): a single soft note two minutes before a block or break of at least 5 minutes ends. It can be turned off in Timer settings.
@@ -114,7 +115,7 @@ The Now screen shows one thing. Everything else is one quiet tap away, behind a 
    - **Break** (Phase 1b): after Done or Stuck at time's up, "Take a break." (or "Time for a longer break.") with a countdown, **+5 min** and **Skip break**. When it ends: a chime, "Break's over." and back to Now.
    - **Timer settings** (`#settings`): focus, break and longer-break minutes, and how many blocks come before a longer break.
 3. **Inbox** (`#inbox`): one autofocused text field (Enter saves and clears it) above a plain list of tasks. Tapping a task opens it. Tasks older than 14 days fold under "Show older tasks" (with no count) unless they're current or planned. Planned tasks are tagged "today".
-   - **Plan today** (`#plan`, Phase 1c): "Pick up to three, in the order you'll do them." Tap to number them 1–3, with a capture field on top. **Start with "…"** makes the first one current. **Start today** on the Off screen leads here.
+   - **Plan today** (`#plan`, Phase 1c): "Pick up to three, in the order you'll do them." Tap to number them 1–3, with a capture field on top. **Next: check the steps** walks through each planned task on the Task screen (`#review/:n`, "1 of 3"), with the add-step field focused when a task has no steps, so every task gets a concrete first step before the day starts. The last one's **Start with "…"** makes the plan current. A quiet Skip starts straight away. **Start today** on the Off screen leads here.
 4. **Task** (`#task/:id`): the title, a step list (add, edit, reorder with up/down, delete) and **Make this my current task**. This is the only place a list of steps appears.
 5. **Off**: shown when there is no open workday.
    - After you end the day: "That's the workday done. It's okay to stop now." with a short list of what got done today (steps, not counts or scores).

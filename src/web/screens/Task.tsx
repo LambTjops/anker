@@ -4,8 +4,16 @@ import { api } from '../api.ts';
 import { celebrate } from '../components/Celebration.tsx';
 import { go, useAction } from '../hooks.ts';
 
+/** Walking through today's plan, one task at a time. */
+export interface ReviewStep {
+  n: number;
+  total: number;
+  nextLabel: string;
+  onNext: () => Promise<void>;
+}
+
 /** Planning a task: the only screen where a list of steps is visible. */
-export function Task({ id }: { id: number }) {
+export function Task({ id, review }: { id: number; review?: ReviewStep }) {
   const [task, setTask] = useState<TaskT | null>(null);
   const [steps, setSteps] = useState<Step[]>([]);
   const [title, setTitle] = useState('');
@@ -83,10 +91,23 @@ export function Task({ id }: { id: number }) {
   return (
     <main class="screen">
       <div class="topbar">
-        <button class="quiet" onClick={() => go('#inbox')}>
-          ← Inbox
-        </button>
-        {task.status === 'current' && <span class="tag">current task</span>}
+        {review ? (
+          <>
+            <button class="quiet" onClick={() => go('#plan')}>
+              ← Plan
+            </button>
+            <span class="note">
+              {review.n} of {review.total}
+            </span>
+          </>
+        ) : (
+          <>
+            <button class="quiet" onClick={() => go('#inbox')}>
+              ← Inbox
+            </button>
+            {task.status === 'current' && <span class="tag">current task</span>}
+          </>
+        )}
       </div>
 
       <input
@@ -104,7 +125,9 @@ export function Task({ id }: { id: number }) {
         <h2>Steps</h2>
         {todo.length === 0 && (
           <p class="note" style={{ marginBottom: '0.75rem' }}>
-            Small, concrete steps work best: start each with a verb.
+            {review
+              ? "No steps yet. What's the first thing you'd do? Start it with a verb."
+              : 'Small, concrete steps work best: start each with a verb.'}
           </p>
         )}
         <ol class="list">
@@ -139,6 +162,7 @@ export function Task({ id }: { id: number }) {
               }
             }}
             placeholder="Add a step, e.g. “Open the doc and write the first heading”"
+            autoFocus={review !== undefined && todo.length === 0}
             enterKeyHint="done"
             maxLength={5000}
           />
@@ -156,65 +180,74 @@ export function Task({ id }: { id: number }) {
         </section>
       )}
 
-      <section class="section stack" style={{ marginTop: 'auto', paddingTop: '2rem' }}>
-        {task.status === 'current' ? (
-          <button class="primary" onClick={() => go('')}>
-            Go to Now
+      {review ? (
+        <section class="section stack" style={{ marginTop: 'auto', paddingTop: '2rem' }}>
+          <button class="primary big" disabled={busy} onClick={() => run(review.onNext)}>
+            {review.nextLabel}
           </button>
-        ) : (
-          <button
-            class="primary"
-            disabled={busy}
-            onClick={() =>
-              act(
-                () => api.makeCurrent(id),
-                () => go(''),
-              )
-            }
-          >
-            Make this my current task
-          </button>
-        )}
-        {task.status !== 'done' && (
-          <button
-            disabled={busy}
-            onClick={() =>
-              act(
-                () => api.updateTask(id, { status: 'done' }),
-                () => {
-                  celebrate('Task done.');
-                  go('#inbox');
-                },
-              )
-            }
-          >
-            Mark task done
-          </button>
-        )}
-        {confirmDelete ? (
-          <div class="row">
+          {error && <p class="note">{error}</p>}
+        </section>
+      ) : (
+        <section class="section stack" style={{ marginTop: 'auto', paddingTop: '2rem' }}>
+          {task.status === 'current' ? (
+            <button class="primary" onClick={() => go('')}>
+              Go to Now
+            </button>
+          ) : (
+            <button
+              class="primary"
+              disabled={busy}
+              onClick={() =>
+                act(
+                  () => api.makeCurrent(id),
+                  () => go(''),
+                )
+              }
+            >
+              Make this my current task
+            </button>
+          )}
+          {task.status !== 'done' && (
             <button
               disabled={busy}
               onClick={() =>
                 act(
-                  () => api.deleteTask(id),
-                  () => go('#inbox'),
+                  () => api.updateTask(id, { status: 'done' }),
+                  () => {
+                    celebrate('Task done.');
+                    go('#inbox');
+                  },
                 )
               }
             >
-              Yes, delete it
+              Mark task done
             </button>
-            <button class="quiet" onClick={() => setConfirmDelete(false)}>
-              Keep it
+          )}
+          {confirmDelete ? (
+            <div class="row">
+              <button
+                disabled={busy}
+                onClick={() =>
+                  act(
+                    () => api.deleteTask(id),
+                    () => go('#inbox'),
+                  )
+                }
+              >
+                Yes, delete it
+              </button>
+              <button class="quiet" onClick={() => setConfirmDelete(false)}>
+                Keep it
+              </button>
+            </div>
+          ) : (
+            <button class="quiet" onClick={() => setConfirmDelete(true)}>
+              Delete task
             </button>
-          </div>
-        ) : (
-          <button class="quiet" onClick={() => setConfirmDelete(true)}>
-            Delete task
-          </button>
-        )}
-        {error && <p class="note">{error}</p>}
-      </section>
+          )}
+          {error && <p class="note">{error}</p>}
+        </section>
+      )}
     </main>
   );
 }

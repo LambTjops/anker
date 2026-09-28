@@ -104,13 +104,18 @@ export function Plan() {
       </section>
 
       <section class="section stack" style={{ marginTop: 'auto', paddingTop: '2rem' }}>
+        {picked.length > 0 && (
+          <button class="primary big" disabled={busy} onClick={() => go('#review/1')}>
+            Next: check the steps
+          </button>
+        )}
         {startFirst ? (
-          <button class="primary big" disabled={busy} onClick={begin}>
-            Start with “{startFirst.title}”
+          <button class="quiet" disabled={busy} onClick={begin}>
+            Skip, start with “{startFirst.title}”
           </button>
         ) : (
-          <button class="primary" onClick={() => go('')}>
-            {picked.length > 0 ? 'Done' : 'Skip for now'}
+          <button class="quiet" onClick={() => go('')}>
+            {picked.length > 0 ? 'Skip, back to Now' : 'Skip for now'}
           </button>
         )}
         {error && <p class="note">{error}</p>}

@@ -9,6 +9,7 @@ import { Inbox } from './screens/Inbox.tsx';
 import { Now } from './screens/Now.tsx';
 import { Off } from './screens/Off.tsx';
 import { Plan } from './screens/Plan.tsx';
+import { Review } from './screens/Review.tsx';
 import { Settings } from './screens/Settings.tsx';
 import { Task } from './screens/Task.tsx';
 
@@ -59,6 +60,7 @@ export function App() {
   else if (route.name === 'task') screen = <Task key={route.id} id={route.id} />;
   else if (route.name === 'settings') screen = <Settings />;
   else if (route.name === 'plan') screen = <Plan />;
+  else if (route.name === 'review') screen = <Review key={route.n} n={route.n} />;
   else if (!state) screen = <main class="screen" />;
   else if (state.mode === 'off') screen = <Off state={state} refresh={refresh} />;
   else if (state.block)

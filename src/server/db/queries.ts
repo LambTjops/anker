@@ -344,7 +344,7 @@ export function addSteps(
 export function updateStep(
   db: Db,
   id: number,
-  patch: { text?: string; status?: 'todo' | 'done'; position?: number },
+  patch: { text?: string; status?: Step['status']; position?: number },
   now: Date,
 ): Step {
   return db.transaction(() => {

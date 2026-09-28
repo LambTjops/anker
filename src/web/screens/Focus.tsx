@@ -7,7 +7,7 @@ import { ParkThought } from '../components/ParkThought.tsx';
 import { useAction } from '../hooks.ts';
 import { signalTimerEnd, softCue } from '../signal.ts';
 
-type Phase = 'running' | 'stopping' | 'stuck';
+type Phase = 'running' | 'stopping' | 'stuck' | 'breakdown';
 
 /** A running (or finished) focus block on one step. */
 export function Focus({
@@ -27,6 +27,8 @@ export function Focus({
   const [smaller, setSmaller] = useState('');
   const { busy, error, run } = useAction();
   const stepText = block.stepText ?? 'This step';
+  // Started as is: the task's title stands in as its one step, so offer a real first step.
+  const notBrokenDown = taskTitle !== null && taskTitle === block.stepText;
 
   const { remaining, over } = useCountdown(
     block.endsAt,
@@ -60,6 +62,49 @@ export function Focus({
       await refresh();
     });
   };
+
+  const submitFirstStep = (e: Event) => {
+    e.preventDefault();
+    const text = smaller.trim();
+    if (!text) return;
+    void run(async () => {
+      await api.finishBlock(block.id, 'abandoned');
+      if (block.stepId !== null && taskId !== null) {
+        await api.addStepBefore(taskId, text, block.stepId);
+        await api.updateStep(block.stepId, { status: 'replaced' });
+      }
+      await refresh();
+    });
+  };
+
+  if (phase === 'breakdown') {
+    return (
+      <main class="screen centred">
+        <p class="task-label">{taskTitle}</p>
+        <h1 class="headline">What's the first step?</h1>
+        <form class="stack" onSubmit={submitFirstStep}>
+          <input
+            type="text"
+            value={smaller}
+            onInput={(e) => setSmaller(e.currentTarget.value)}
+            placeholder="Something small you can start on"
+            autoFocus
+            enterKeyHint="done"
+            maxLength={500}
+          />
+          <div class="row">
+            <button class="primary" type="submit" disabled={busy || !smaller.trim()}>
+              Use this
+            </button>
+            <button class="quiet" type="button" onClick={() => setPhase('stopping')}>
+              Back
+            </button>
+          </div>
+        </form>
+        {error && <p class="note">{error}</p>}
+      </main>
+    );
+  }
 
   if (phase === 'stuck') {
     return (
@@ -120,6 +165,11 @@ export function Focus({
           <button class="big" disabled={busy} onClick={() => setPhase('stuck')}>
             Stuck
           </button>
+          {notBrokenDown && (
+            <button class="quiet" disabled={busy} onClick={() => setPhase('breakdown')}>
+              Break it down
+            </button>
+          )}
           {over ? (
             <button class="big" disabled={busy} onClick={() => finish('keep_going')}>
               Keep going

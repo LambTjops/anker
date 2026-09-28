@@ -39,7 +39,7 @@ export const CreateStepsBody = z.union([
 export const UpdateStepBody = z
   .object({
     text: text.optional(),
-    status: z.enum(['todo', 'done']).optional(),
+    status: z.enum(['todo', 'done', 'replaced']).optional(),
     position: z.number().int().min(0).optional(),
   })
   .refine((b) => Object.keys(b).length > 0, 'Nothing to update');
