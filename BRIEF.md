@@ -108,7 +108,7 @@ The Now screen shows one thing. Everything else is one quiet tap away, behind a 
 2. **Focus**: the step text and a calm countdown. "Stop early" is small and low-contrast. When time is up: **Done** / **Stuck** / **Keep going**.
    - In Phase 1, **Stuck** asks "What's a smaller first move?" and inserts what you type _in front of_ the stuck step (`parent_step_id` points at it). The stuck step comes back once the small move is done. In Phase 2 the coach takes this over.
    - **Stop early** offers Done / Done, take a break / Stuck / Stop for now / Back to the timer.
-   - **Clock** (added 2026-11-17): the time of day, small and muted, under the countdown on Focus and Break. It also shows when the block or break ends ("2:31 pm · ends 2:55 pm"), which moves with +5 min.
+   - **Clock** (added 2026-11-17): the time of day, small and muted, under the countdown on Focus and Break. It also shows when the block or break ends ("14:31 · ends 14:55", 24-hour), which moves with +5 min.
    - **Break it down** (added 2026-09-28): when a task was started as is (its title is the step), Stop early and time's up also offer "Break it down". It asks "What's the first step?", ends the block without a break, and the new step replaces the title step (`status='replaced'`).
    - A quiet **+5 min** sits under the countdown while it runs.
    - **Park a thought** (Phase 1c): one field that saves a stray thought to the inbox and returns straight to the timer.

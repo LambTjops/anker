@@ -2,7 +2,11 @@ import { useEffect, useState } from 'preact/hooks';
 import type { Settings } from '../../shared/api.ts';
 import { serverNow } from '../api.ts';
 
-const format = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
+const format = new Intl.DateTimeFormat(undefined, {
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
 
 /**
  * The time of day and when the timer ends, small and muted, so a running timer has a
