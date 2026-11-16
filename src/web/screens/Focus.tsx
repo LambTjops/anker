@@ -155,7 +155,7 @@ export function Focus({
           <div class="progress" aria-hidden="true">
             <div style={{ width: `${progress * 100}%` }} />
           </div>
-          <Clock />
+          <Clock endsAt={block.endsAt} />
         </div>
       )}
 
