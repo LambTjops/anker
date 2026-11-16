@@ -75,6 +75,9 @@ export const UpdateSettingsBody = z
     /** A long break after this many focus blocks; 0 turns long breaks off. */
     longBreakEvery: z.number().int().min(0).max(12).optional(),
     headsUp: z.boolean().optional(),
+    showClock: z.boolean().optional(),
+    showEndTime: z.boolean().optional(),
+    earlyBreak: z.boolean().optional(),
   })
   .refine((b) => Object.keys(b).length > 0, 'Nothing to update');
 
@@ -135,7 +138,16 @@ export interface Settings {
   longBreakEvery: number;
   /** A soft chime two minutes before a block or break ends. */
   headsUp: boolean;
+  /** The time of day under the countdown on Focus and Break. */
+  showClock: boolean;
+  /** When the block or break ends, under the countdown. */
+  showEndTime: boolean;
+  /** "Done, take a break" on Stop early. */
+  earlyBreak: boolean;
 }
+
+/** The on/off features, which the Now, Focus and Break screens need to know about. */
+export type FeatureKey = 'headsUp' | 'showClock' | 'showEndTime' | 'earlyBreak';
 
 /** POST /api/blocks/:id/finish */
 export interface FinishResult {
@@ -168,8 +180,8 @@ export interface AppState {
   break: Break | null;
   /** The next task on today's shortlist that isn't current: offered when a task is done. */
   nextTask: { id: number; title: string } | null;
-  /** What the Now and Focus screens need from Settings. */
-  timers: { focusMinutes: number; headsUp: boolean };
+  /** What the Now, Focus and Break screens need from Settings. */
+  timers: { focusMinutes: number } & Pick<Settings, FeatureKey>;
 }
 
 /** GET /api/today */

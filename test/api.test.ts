@@ -272,6 +272,9 @@ describe('breaks and timers', () => {
       longBreakMinutes: 15,
       longBreakEvery: 4,
       headsUp: true,
+      showClock: true,
+      showEndTime: true,
+      earlyBreak: true,
     });
     await call('PATCH', '/api/settings', { focusMinutes: 50, breakMinutes: 10 });
     await call('POST', '/api/workday/start');
@@ -385,10 +388,16 @@ describe("today's plan and starting", () => {
     expect((await call('POST', '/api/blocks', { minutes: 0 })).status).toBe(400);
   });
 
-  it('tells the screens the default length and the heads-up setting', async () => {
-    await call('PATCH', '/api/settings', { headsUp: false, focusMinutes: 20 });
+  it('tells the screens the default length and which features are on', async () => {
+    await call('PATCH', '/api/settings', { headsUp: false, focusMinutes: 20, showClock: false });
     const { body: state } = await call<AppState>('GET', '/api/state');
-    expect(state.timers).toEqual({ focusMinutes: 20, headsUp: false });
+    expect(state.timers).toEqual({
+      focusMinutes: 20,
+      headsUp: false,
+      showClock: false,
+      showEndTime: true,
+      earlyBreak: true,
+    });
   });
 });
 

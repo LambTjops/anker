@@ -60,7 +60,13 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
       block: q.openBlock(db),
       break: q.openBreak(db),
       nextTask: q.nextTask(db, localDate),
-      timers: { focusMinutes: timers.focusMinutes, headsUp: timers.headsUp },
+      timers: {
+        focusMinutes: timers.focusMinutes,
+        headsUp: timers.headsUp,
+        showClock: timers.showClock,
+        showEndTime: timers.showEndTime,
+        earlyBreak: timers.earlyBreak,
+      },
     };
   });
 

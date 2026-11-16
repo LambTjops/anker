@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import type { Block, BlockOutcome } from '../../shared/api.ts';
+import type { Block, BlockOutcome, FeatureKey, Settings } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { mmss, useCountdown } from '../countdown.ts';
 import { celebrate } from '../components/Celebration.tsx';
@@ -15,13 +15,13 @@ export function Focus({
   block,
   taskId,
   taskTitle,
-  headsUp,
+  features,
   refresh,
 }: {
   block: Block;
   taskId: number | null;
   taskTitle: string | null;
-  headsUp: boolean;
+  features: Pick<Settings, FeatureKey>;
   refresh: () => Promise<void>;
 }) {
   const [phase, setPhase] = useState<Phase>('running');
@@ -35,7 +35,7 @@ export function Focus({
     block.endsAt,
     () => signalTimerEnd('Block finished', stepText),
     (clock) => (clock ? `${clock} · Anker` : "Time's up · Anker"),
-    headsUp && block.plannedSeconds >= 5 * 60 ? softCue : undefined,
+    features.headsUp && block.plannedSeconds >= 5 * 60 ? softCue : undefined,
   );
 
   const finish = (outcome: BlockOutcome, takeBreak?: boolean) =>
@@ -155,7 +155,7 @@ export function Focus({
           <div class="progress" aria-hidden="true">
             <div style={{ width: `${progress * 100}%` }} />
           </div>
-          <Clock endsAt={block.endsAt} />
+          <Clock endsAt={block.endsAt} features={features} />
         </div>
       )}
 
@@ -164,7 +164,7 @@ export function Focus({
           <button class="primary big" disabled={busy} onClick={() => finish('done')}>
             Done
           </button>
-          {!over && (
+          {!over && features.earlyBreak && (
             <button class="quiet" disabled={busy} onClick={() => finish('done', true)}>
               Done, take a break
             </button>

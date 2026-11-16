@@ -35,7 +35,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   };
 }
 
-/** Timer lengths until the owner changes them in Settings. FOCUS_MINUTES sets the first. */
+/** Timer lengths and features until the owner changes them in Settings. FOCUS_MINUTES sets the first. */
 export function defaultSettings(config: Config): Settings {
   return {
     focusMinutes: Math.round(config.focusSeconds / 60),
@@ -43,5 +43,8 @@ export function defaultSettings(config: Config): Settings {
     longBreakMinutes: 15,
     longBreakEvery: 4,
     headsUp: true,
+    showClock: true,
+    showEndTime: true,
+    earlyBreak: true,
   };
 }

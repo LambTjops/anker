@@ -40,7 +40,8 @@ A feature earns its place only if it breaks this loop at one of these points:
 1. **One primary action per screen.** Now and Focus never show more than three things you can tap.
 2. **A new feature must remove a decision or a tap**, not add one. If it adds a choice, the choice goes in
    Settings with a sensible default, and never on the main path.
-3. **Defaults over options.** Build the one best behaviour; add a setting only after real use shows it's needed.
+3. **Good defaults, with a switch.** Build the one best behaviour and turn it on by default. Each optional feature also
+   gets an on/off switch in Settings → Features (the owner asked for this on 2026-11-17). Switches never sit on the main path.
 4. **Keep or cut after two weeks.** If a feature isn't used or doesn't help, remove it. Less is the feature.
 5. **Never show what didn't happen**: no counts of skipped, missed or overdue items.
 
@@ -166,7 +167,7 @@ extension covers the main device.
 ### 4.3 Blocklist
 
 - It's stored **on the server**, so it survives reinstalling the extension and a future Android client can use it.
-- It's edited in **⋯ → Timer settings → Distracting sites**: one domain per line. Subdomains are included
+- It's edited in **⋯ → Settings → Distracting sites**: one domain per line. Subdomains are included
   (`youtube.com` covers `m.youtube.com`).
 - It starts with a suggested list the owner edits once: `youtube.com, reddit.com, x.com, facebook.com,
 instagram.com, tiktok.com, news.google.com, stuff.co.nz, nzherald.co.nz` (see D4).

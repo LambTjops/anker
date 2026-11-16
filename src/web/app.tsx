@@ -70,7 +70,7 @@ export function App() {
         block={state.block}
         taskId={state.currentTask?.id ?? null}
         taskTitle={state.currentTask?.title ?? null}
-        headsUp={state.timers.headsUp}
+        features={state.timers}
         refresh={refresh}
       />
     );
@@ -79,7 +79,7 @@ export function App() {
       <Break
         key={state.break.id}
         brk={state.break}
-        headsUp={state.timers.headsUp}
+        features={state.timers}
         refresh={refresh}
         onOver={() => setFlash("Break's over.")}
       />

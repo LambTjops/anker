@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'preact/hooks';
-import type { Settings as SettingsT } from '../../shared/api.ts';
+import type { FeatureKey, Settings as SettingsT } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { go, useAction } from '../hooks.ts';
 
-type NumberKey = Exclude<keyof SettingsT, 'headsUp'>;
+type NumberKey = Exclude<keyof SettingsT, FeatureKey>;
 
 const FIELDS: { key: NumberKey; label: string; min: number; max: number }[] = [
   { key: 'focusMinutes', label: 'Focus block (minutes)', min: 1, max: 180 },
@@ -17,10 +17,18 @@ const FIELDS: { key: NumberKey; label: string; min: number; max: number }[] = [
   },
 ];
 
-/** Timer lengths. Changes apply from the next block or break. */
+/** Every optional feature gets a line here, so it can be turned off. */
+const FEATURES: { key: FeatureKey; label: string }[] = [
+  { key: 'showClock', label: 'Clock under the timer' },
+  { key: 'showEndTime', label: 'When the timer ends, under the timer' },
+  { key: 'earlyBreak', label: '"Done, take a break" when you stop early' },
+  { key: 'headsUp', label: 'Soft chime 2 minutes before a block or break ends' },
+];
+
+/** Timer lengths and on/off features. Changes apply from the next block or break. */
 export function Settings() {
   const [form, setForm] = useState<Record<NumberKey, string> | null>(null);
-  const [headsUp, setHeadsUp] = useState(true);
+  const [features, setFeatures] = useState<Record<FeatureKey, boolean> | null>(null);
   const [saved, setSaved] = useState(false);
   const { busy, error, run } = useAction();
 
@@ -33,13 +41,18 @@ export function Settings() {
         longBreakMinutes: String(s.longBreakMinutes),
         longBreakEvery: String(s.longBreakEvery),
       });
-      setHeadsUp(s.headsUp);
+      setFeatures({
+        headsUp: s.headsUp,
+        showClock: s.showClock,
+        showEndTime: s.showEndTime,
+        earlyBreak: s.earlyBreak,
+      });
     });
   }, [run]);
 
   const save = (e: Event) => {
     e.preventDefault();
-    if (!form) return;
+    if (!form || !features) return;
     setSaved(false);
     void run(async () => {
       await api.updateSettings({
@@ -47,7 +60,7 @@ export function Settings() {
         breakMinutes: Number(form.breakMinutes),
         longBreakMinutes: Number(form.longBreakMinutes),
         longBreakEvery: Number(form.longBreakEvery),
-        headsUp,
+        ...features,
       });
       setSaved(true);
     });
@@ -59,12 +72,13 @@ export function Settings() {
         <button class="quiet" onClick={() => go('')}>
           ← Back
         </button>
-        <h1>Timers</h1>
+        <h1>Settings</h1>
         <span style={{ width: '5rem' }} />
       </div>
 
-      {form && (
+      {form && features && (
         <form class="section stack" style={{ alignItems: 'stretch' }} onSubmit={save}>
+          <h2>Timers</h2>
           {FIELDS.map((f) => (
             <label class="field" key={f.key}>
               <span>{f.label}</span>
@@ -83,21 +97,24 @@ export function Settings() {
               />
             </label>
           ))}
-          <label class="check">
-            <input
-              type="checkbox"
-              checked={headsUp}
-              onChange={(e) => {
-                setSaved(false);
-                setHeadsUp(e.currentTarget.checked);
-              }}
-            />
-            <span>Soft chime 2 minutes before a block or break ends</span>
-          </label>
+          <h2>Features</h2>
+          {FEATURES.map((f) => (
+            <label class="check" key={f.key}>
+              <input
+                type="checkbox"
+                checked={features[f.key]}
+                onChange={(e) => {
+                  setSaved(false);
+                  setFeatures({ ...features, [f.key]: e.currentTarget.checked });
+                }}
+              />
+              <span>{f.label}</span>
+            </label>
+          ))}
           <button class="primary" type="submit" disabled={busy}>
             Save
           </button>
-          {saved && <p class="note fade-in">Saved. This applies from the next block or break.</p>}
+          {saved && <p class="note fade-in">Saved.</p>}
         </form>
       )}
 

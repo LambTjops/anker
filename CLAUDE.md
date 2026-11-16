@@ -69,6 +69,7 @@ docker/         Dockerfile, anker.subdomain.conf
 - Dark is the default; light only when the system prefers it. Colours are CSS custom properties. Tap targets are at least 48px.
 - Copy is short, warm and plain. Write "Start", not "Let's crush it!". Sentence case.
 - The service worker caches the app shell only. It never caches `/api/*`.
+- **Every new optional feature gets an on/off switch** under Settings → Features (a `settings` column defaulting to on, a field in `Settings` and `FeatureKey`, a line in `FEATURES` in `Settings.tsx`). The owner asked for this on 2026-11-17.
 - If the server can't be reached, show a quiet "Can't reach Anker right now" state and never lose typed input.
 
 ### Coach (Phase 2)

@@ -1,4 +1,4 @@
-import type { Break as BreakT } from '../../shared/api.ts';
+import type { Break as BreakT, FeatureKey, Settings } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { Clock } from '../components/Clock.tsx';
 import { mmss, useCountdown } from '../countdown.ts';
@@ -8,12 +8,12 @@ import { signalTimerEnd, softCue } from '../signal.ts';
 /** A break between focus blocks. When it runs out, Now comes back; nothing starts itself. */
 export function Break({
   brk,
-  headsUp,
+  features,
   refresh,
   onOver,
 }: {
   brk: BreakT;
-  headsUp: boolean;
+  features: Pick<Settings, FeatureKey>;
   refresh: () => Promise<void>;
   onOver: () => void;
 }) {
@@ -34,7 +34,7 @@ export function Break({
       void leave();
     },
     (clock) => (clock ? `${clock} · Break · Anker` : 'Anker'),
-    headsUp && brk.plannedSeconds >= 5 * 60 ? softCue : undefined,
+    features.headsUp && brk.plannedSeconds >= 5 * 60 ? softCue : undefined,
   );
 
   const extend = () =>
@@ -61,7 +61,7 @@ export function Break({
         <div class="progress" aria-hidden="true">
           <div style={{ width: `${progress * 100}%` }} />
         </div>
-        <Clock endsAt={brk.endsAt} />
+        <Clock endsAt={brk.endsAt} features={features} />
       </div>
 
       <div class="stack">
