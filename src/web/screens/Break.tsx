@@ -61,7 +61,7 @@ export function Break({
         <div class="progress" aria-hidden="true">
           <div style={{ width: `${progress * 100}%` }} />
         </div>
-        <Clock />
+        <Clock endsAt={brk.endsAt} />
       </div>
 
       <div class="stack">
