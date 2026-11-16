@@ -1,5 +1,6 @@
 import type { Break as BreakT } from '../../shared/api.ts';
 import { api } from '../api.ts';
+import { Clock } from '../components/Clock.tsx';
 import { mmss, useCountdown } from '../countdown.ts';
 import { useAction } from '../hooks.ts';
 import { signalTimerEnd, softCue } from '../signal.ts';
@@ -60,6 +61,7 @@ export function Break({
         <div class="progress" aria-hidden="true">
           <div style={{ width: `${progress * 100}%` }} />
         </div>
+        <Clock />
       </div>
 
       <div class="stack">

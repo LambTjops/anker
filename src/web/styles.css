@@ -441,6 +441,13 @@ textarea::placeholder {
   font-size: clamp(2.6rem, 10vw, 3.75rem);
 }
 
+.clock {
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
 .progress {
   width: min(20rem, 100%);
   height: 4px;

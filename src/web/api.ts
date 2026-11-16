@@ -86,8 +86,8 @@ export const api = {
 
   startBlock: (minutes?: number) =>
     request<Block>('POST', '/api/blocks', minutes === undefined ? undefined : { minutes }),
-  finishBlock: (id: number, outcome: BlockOutcome) =>
-    request<FinishResult>('POST', `/api/blocks/${id}/finish`, { outcome }),
+  finishBlock: (id: number, outcome: BlockOutcome, takeBreak?: boolean) =>
+    request<FinishResult>('POST', `/api/blocks/${id}/finish`, { outcome, takeBreak }),
   extendBlock: (id: number) => request<Block>('POST', `/api/blocks/${id}/extend`),
 
   extendBreak: (id: number) => request<Break>('POST', `/api/breaks/${id}/extend`),

@@ -14,6 +14,13 @@ describe('breaks', () => {
     expect(earnsBreak('done', block, at('2026-09-24T21:20:00.000Z'))).toBe(false);
   });
 
+  it('an early Done earns a break only when asked for', () => {
+    const early = at('2026-09-24T21:10:00.000Z');
+    expect(earnsBreak('done', block, early, true)).toBe(true);
+    expect(earnsBreak('abandoned', block, early, true)).toBe(false);
+    expect(earnsBreak('keep_going', block, early, true)).toBe(false);
+  });
+
   it('allows for a client clock a few seconds ahead of the server', () => {
     expect(earnsBreak('done', block, at('2026-09-24T21:24:57.000Z'))).toBe(true);
     expect(earnsBreak('done', block, at('2026-09-24T21:24:50.000Z'))).toBe(false);

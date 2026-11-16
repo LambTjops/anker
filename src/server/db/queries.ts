@@ -534,7 +534,8 @@ export function startBlock(db: Db, now: Date, plannedSeconds: number): Block {
 
 /**
  * Finishes the running block. 'done' completes its step; 'keep_going' starts a fresh
- * block on the same step and returns it. Done or Stuck at time's up starts a break.
+ * block on the same step and returns it. Done or Stuck at time's up starts a break, and so
+ * does an early Done with `takeBreak`.
  */
 export function finishBlock(
   db: Db,
@@ -542,6 +543,7 @@ export function finishBlock(
   outcome: BlockOutcome,
   now: Date,
   settings: Settings,
+  takeBreak = false,
 ): FinishResult {
   return db.transaction(() => {
     const block = openBlockRow(db);
@@ -564,7 +566,7 @@ export function finishBlock(
       const next = insertBlock(db, block.step_id, block.workday_id, now, seconds);
       return { next, break: null };
     }
-    if (earnsBreak(outcome, timer(block), now)) {
+    if (earnsBreak(outcome, timer(block), now, takeBreak)) {
       return { next: null, break: startBreak(db, block, now, settings) };
     }
     return { next: null, break: null };

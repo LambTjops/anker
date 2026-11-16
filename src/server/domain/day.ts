@@ -42,14 +42,17 @@ export function isCountingDown(
 
 /**
  * Whether finishing a block starts a break: only Done or Stuck once its time is up.
- * Keep going stays in flow, and stopping early goes straight back to Now.
+ * Keep going stays in flow, and stopping early goes straight back to Now, unless an early
+ * Done asks for a break.
  */
 export function earnsBreak(
   outcome: BlockOutcome,
   block: { startedAt: string; plannedSeconds: number },
   now: Date,
+  takeBreak = false,
 ): boolean {
   if (outcome !== 'done' && outcome !== 'stuck') return false;
+  if (takeBreak && outcome === 'done') return true;
   return now.getTime() >= blockEndsAt(block).getTime() - TIME_UP_GRACE_MS;
 }
 

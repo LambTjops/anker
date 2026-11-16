@@ -196,6 +196,21 @@ describe('breaks and timers', () => {
     expect((await runBlock('done', 10)).break).toBeNull();
   });
 
+  it('an early Done can ask for a break', async () => {
+    await call('POST', '/api/workday/start');
+    await setUpCurrentTask(['A', 'B']);
+    const block = (await call<Block>('POST', '/api/blocks')).body;
+    advance(10);
+    const { body } = await call<FinishResult>('POST', `/api/blocks/${block.id}/finish`, {
+      outcome: 'done',
+      takeBreak: true,
+    });
+    expect(body.break?.kind).toBe('short');
+    const { body: state } = await call<AppState>('GET', '/api/state');
+    expect(state.currentStep?.text).toBe('B');
+    expect(state.break?.id).toBe(body.break?.id);
+  });
+
   it('every fourth block earns a longer break', async () => {
     await call('POST', '/api/workday/start');
     await setUpCurrentTask(['A', 'B', 'C', 'D', 'E', 'F']);

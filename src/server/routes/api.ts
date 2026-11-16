@@ -146,8 +146,8 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
 
   app.post('/api/blocks/:id/finish', async (req) => {
     const { id } = IdParams.parse(req.params);
-    const { outcome } = FinishBlockBody.parse(req.body);
-    return q.finishBlock(db, id, outcome, now(), settings());
+    const { outcome, takeBreak } = FinishBlockBody.parse(req.body);
+    return q.finishBlock(db, id, outcome, now(), settings(), takeBreak);
   });
 
   app.post('/api/blocks/:id/extend', async (req) =>

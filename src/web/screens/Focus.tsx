@@ -3,6 +3,7 @@ import type { Block, BlockOutcome } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { mmss, useCountdown } from '../countdown.ts';
 import { celebrate } from '../components/Celebration.tsx';
+import { Clock } from '../components/Clock.tsx';
 import { ParkThought } from '../components/ParkThought.tsx';
 import { useAction } from '../hooks.ts';
 import { signalTimerEnd, softCue } from '../signal.ts';
@@ -37,9 +38,9 @@ export function Focus({
     headsUp && block.plannedSeconds >= 5 * 60 ? softCue : undefined,
   );
 
-  const finish = (outcome: BlockOutcome) =>
+  const finish = (outcome: BlockOutcome, takeBreak?: boolean) =>
     run(async () => {
-      await api.finishBlock(block.id, outcome);
+      await api.finishBlock(block.id, outcome, takeBreak);
       if (outcome === 'done') celebrate('Done.');
       await refresh();
     });
@@ -154,6 +155,7 @@ export function Focus({
           <div class="progress" aria-hidden="true">
             <div style={{ width: `${progress * 100}%` }} />
           </div>
+          <Clock />
         </div>
       )}
 
@@ -162,6 +164,11 @@ export function Focus({
           <button class="primary big" disabled={busy} onClick={() => finish('done')}>
             Done
           </button>
+          {!over && (
+            <button class="quiet" disabled={busy} onClick={() => finish('done', true)}>
+              Done, take a break
+            </button>
+          )}
           <button class="big" disabled={busy} onClick={() => setPhase('stuck')}>
             Stuck
           </button>

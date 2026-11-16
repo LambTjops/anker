@@ -44,7 +44,11 @@ export const UpdateStepBody = z
   })
   .refine((b) => Object.keys(b).length > 0, 'Nothing to update');
 
-export const FinishBlockBody = z.object({ outcome: BlockOutcome });
+/** `takeBreak` asks for a break after an early Done (time's up earns one anyway). */
+export const FinishBlockBody = z.object({
+  outcome: BlockOutcome,
+  takeBreak: z.boolean().optional(),
+});
 
 /** The shortlist holds at most this many tasks, so a day never starts as a wall. */
 export const PLAN_LIMIT = 3;

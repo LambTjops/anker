@@ -229,14 +229,15 @@ It needs an Anthropic API key and the owner's OK on the model and the daily cap 
 
 ## 6. Later, maybe (only after real use shows the need)
 
-| Idea                                   | Why it could help                                                                                      | Why it waits                                                          |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
-| Brown-noise toggle during focus        | Many people with ADHD focus better with steady noise. It can be generated in Web Audio, with no files. | It adds a control. Try free apps first; add only if missed.           |
-| Weekly inbox sweep, one card at a time | "Keep / Someday / Drop" per task keeps the inbox light, without a scary list                           | Only matters once the inbox grows. Folding older tasks may be enough. |
-| "This week" done list                  | Counters the "I did nothing" feeling on bad days                                                       | The Off screen's daily list may be enough.                            |
-| Blocks-per-task shown at Task done     | Calibrates time estimates ("that took 3 blocks")                                                       | Borderline stats; could slide into scorekeeping.                      |
-| DNS-level shield on home Wi-Fi         | Covers the phone at home                                                                               | Needs AdGuard Home and whole-household rules; see §4.1.               |
-| Accountability ("send my done list")   | External accountability is a strong ADHD motivator                                                     | Privacy, and a second person. The owner should ask for it.            |
+| Idea                                   | Why it could help                                                                                        | Why it waits                                                          |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Brown-noise toggle during focus        | Many people with ADHD focus better with steady noise. It can be generated in Web Audio, with no files.   | It adds a control. Try free apps first; add only if missed.           |
+| Weekly inbox sweep, one card at a time | "Keep / Someday / Drop" per task keeps the inbox light, without a scary list                             | Only matters once the inbox grows. Folding older tasks may be enough. |
+| "This week" done list                  | Counters the "I did nothing" feeling on bad days                                                         | The Off screen's daily list may be enough.                            |
+| Blocks-per-task shown at Task done     | Calibrates time estimates ("that took 3 blocks")                                                         | Borderline stats; could slide into scorekeeping.                      |
+| DNS-level shield on home Wi-Fi         | Covers the phone at home                                                                                 | Needs AdGuard Home and whole-household rules; see §4.1.               |
+| Next meeting beside the clock          | Makes the time before a meeting visible on Focus (read-only, from a private iCal link in the server env) | Calendar sync is a non-goal. The owner parked it on 2026-11-17.       |
+| Accountability ("send my done list")   | External accountability is a strong ADHD motivator                                                       | Privacy, and a second person. The owner should ask for it.            |
 
 ## 7. Deliberately not doing
 
