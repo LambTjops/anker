@@ -64,3 +64,13 @@ export function GearIcon() {
     </svg>
   );
 }
+
+/** An inbox tray. */
+export function InboxIcon() {
+  return (
+    <svg {...svgProps}>
+      <path d="M3 13h5l1.5 3h5L16 13h5" />
+      <path d="M5.5 5h13L21 13v6H3v-6z" />
+    </svg>
+  );
+}

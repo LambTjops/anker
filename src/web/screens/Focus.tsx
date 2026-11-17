@@ -5,7 +5,14 @@ import { appLink } from '../appLink.ts';
 import { mmss, useCountdown } from '../countdown.ts';
 import { celebrate } from '../components/Celebration.tsx';
 import { Clock } from '../components/Clock.tsx';
-import { GearIcon, MusicIcon, PeopleIcon, StopIcon, ThoughtIcon } from '../components/icons.tsx';
+import {
+  GearIcon,
+  InboxIcon,
+  MusicIcon,
+  PeopleIcon,
+  StopIcon,
+  ThoughtIcon,
+} from '../components/icons.tsx';
 import { ParkThought } from '../components/ParkThought.tsx';
 import { useAction } from '../hooks.ts';
 import { signalTimerEnd, softCue } from '../signal.ts';
@@ -223,15 +230,18 @@ export function Focus({
       onPointerUpCapture={shown.onPointerUp}
       onClickCapture={shown.onClick}
     >
-      {/* Always hidden until hover, a key or a tap, whatever Calm Focus says. */}
-      <a
-        class={`button icon quiet corner reveal${shown.on ? ' shown' : ''}`}
-        href="#settings"
-        aria-label="Settings"
-        title="Settings"
-      >
-        <GearIcon />
-      </a>
+      {/* Always hidden until hover, a key or a tap, whatever Calm Focus says. The inbox
+          only while paused, so it doesn't pull you away mid-block. */}
+      <div class={`row corner reveal${shown.on ? ' shown' : ''}`}>
+        {paused && (
+          <a class="button icon quiet" href="#inbox" aria-label="Inbox" title="Inbox">
+            <InboxIcon />
+          </a>
+        )}
+        <a class="button icon quiet" href="#settings" aria-label="Settings" title="Settings">
+          <GearIcon />
+        </a>
+      </div>
       <div class="stack" style={{ gap: '0.5rem' }}>
         {taskTitle && taskTitle !== stepText && <p class="task-label">{taskTitle}</p>}
         <h1 class="step-text">{stepText}</h1>
