@@ -45,10 +45,17 @@ export function Clock({
       <form class="clock clock-form" onSubmit={save}>
         <label>
           <span>Ends at</span>
+          {/* Not type="time": that follows the device's 12/24-hour setting. */}
           <input
-            type="time"
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder="14:55"
+            pattern="([01]?[0-9]|2[0-3]):?[0-5][0-9]"
+            maxLength={5}
             value={value}
             onInput={(e) => setValue(e.currentTarget.value)}
+            onFocus={(e) => e.currentTarget.select()}
             onKeyDown={(e) => e.key === 'Escape' && setEditing(false)}
             autoFocus
             required
@@ -96,11 +103,11 @@ export function Clock({
 }
 
 /**
- * The next time the clock reads `hhmm` (from an `<input type="time">`, in this device's
- * time zone, which is also how the end time is shown), as an ISO instant.
+ * The next time the clock reads `hhmm` (24-hour "14:55" or "1455", in this device's time
+ * zone, which is also how the end time is shown), as an ISO instant.
  */
 function nextOccurrence(hhmm: string): string | null {
-  const m = /^(\d{2}):(\d{2})/.exec(hhmm);
+  const m = /^([01]?\d|2[0-3]):?([0-5]\d)$/.exec(hhmm.trim());
   if (!m) return null;
   const now = new Date(serverNow());
   const at = new Date(now);

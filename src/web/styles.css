@@ -499,7 +499,9 @@ button.clock-edit:hover {
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--text);
-  color-scheme: light dark;
+  width: 6rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .progress {
