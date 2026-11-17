@@ -89,6 +89,8 @@ interface SettingsRow {
   show_clock: number;
   show_end_time: number;
   early_break: number;
+  focus_room: number;
+  focus_room_url: string;
 }
 
 const toTask = (r: TaskRow): Task => ({
@@ -169,6 +171,8 @@ export function getSettings(db: Db, defaults: Settings): Settings {
     showClock: row.show_clock === 1,
     showEndTime: row.show_end_time === 1,
     earlyBreak: row.early_break === 1,
+    focusRoom: row.focus_room === 1,
+    focusRoomUrl: row.focus_room_url,
   };
 }
 
@@ -177,8 +181,8 @@ export function updateSettings(db: Db, defaults: Settings, patch: Partial<Settin
   db.prepare(
     `INSERT OR REPLACE INTO settings
        (id, focus_minutes, break_minutes, long_break_minutes, long_break_every, heads_up,
-        show_clock, show_end_time, early_break)
-     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        show_clock, show_end_time, early_break, focus_room, focus_room_url)
+     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     next.focusMinutes,
     next.breakMinutes,
@@ -188,6 +192,8 @@ export function updateSettings(db: Db, defaults: Settings, patch: Partial<Settin
     next.showClock ? 1 : 0,
     next.showEndTime ? 1 : 0,
     next.earlyBreak ? 1 : 0,
+    next.focusRoom ? 1 : 0,
+    next.focusRoomUrl,
   );
   return next;
 }

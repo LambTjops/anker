@@ -46,5 +46,7 @@ export function defaultSettings(config: Config): Settings {
     showClock: true,
     showEndTime: true,
     earlyBreak: true,
+    focusRoom: true,
+    focusRoomUrl: '',
   };
 }

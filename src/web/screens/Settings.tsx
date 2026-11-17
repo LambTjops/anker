@@ -3,7 +3,7 @@ import type { FeatureKey, Settings as SettingsT } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { go, useAction } from '../hooks.ts';
 
-type NumberKey = Exclude<keyof SettingsT, FeatureKey>;
+type NumberKey = Exclude<keyof SettingsT, FeatureKey | 'focusRoomUrl'>;
 
 const FIELDS: { key: NumberKey; label: string; min: number; max: number }[] = [
   { key: 'focusMinutes', label: 'Focus block (minutes)', min: 1, max: 180 },
@@ -23,12 +23,14 @@ const FEATURES: { key: FeatureKey; label: string }[] = [
   { key: 'showEndTime', label: 'When the timer ends, under the timer' },
   { key: 'earlyBreak', label: '"Done, take a break" when you stop early' },
   { key: 'headsUp', label: 'Soft chime 2 minutes before a block or break ends' },
+  { key: 'focusRoom', label: '"Join the room" on Focus, for body doubling' },
 ];
 
 /** Timer lengths and on/off features. Changes apply from the next block or break. */
 export function Settings() {
   const [form, setForm] = useState<Record<NumberKey, string> | null>(null);
   const [features, setFeatures] = useState<Record<FeatureKey, boolean> | null>(null);
+  const [roomUrl, setRoomUrl] = useState('');
   const [saved, setSaved] = useState(false);
   const { busy, error, run } = useAction();
 
@@ -46,7 +48,9 @@ export function Settings() {
         showClock: s.showClock,
         showEndTime: s.showEndTime,
         earlyBreak: s.earlyBreak,
+        focusRoom: s.focusRoom,
       });
+      setRoomUrl(s.focusRoomUrl);
     });
   }, [run]);
 
@@ -61,6 +65,7 @@ export function Settings() {
         longBreakMinutes: Number(form.longBreakMinutes),
         longBreakEvery: Number(form.longBreakEvery),
         ...features,
+        focusRoomUrl: roomUrl.trim(),
       });
       setSaved(true);
     });
@@ -111,6 +116,23 @@ export function Settings() {
               <span>{f.label}</span>
             </label>
           ))}
+          {features.focusRoom && (
+            <label class="field">
+              <span>Room link (e.g. a Discord voice channel)</span>
+              <input
+                type="url"
+                inputMode="url"
+                placeholder="https://discord.com/channels/…"
+                pattern="https://.*"
+                maxLength={500}
+                value={roomUrl}
+                onInput={(e) => {
+                  setSaved(false);
+                  setRoomUrl(e.currentTarget.value);
+                }}
+              />
+            </label>
+          )}
           <button class="primary" type="submit" disabled={busy}>
             Save
           </button>

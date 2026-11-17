@@ -78,6 +78,9 @@ export const UpdateSettingsBody = z
     showClock: z.boolean().optional(),
     showEndTime: z.boolean().optional(),
     earlyBreak: z.boolean().optional(),
+    focusRoom: z.boolean().optional(),
+    /** '' clears it. Only https links, so it can't carry a script. */
+    focusRoomUrl: z.union([z.literal(''), z.url({ protocol: /^https$/ }).max(500)]).optional(),
   })
   .refine((b) => Object.keys(b).length > 0, 'Nothing to update');
 
@@ -144,10 +147,14 @@ export interface Settings {
   showEndTime: boolean;
   /** "Done, take a break" on Stop early. */
   earlyBreak: boolean;
+  /** "Join the room" on Focus, when a room link is set. */
+  focusRoom: boolean;
+  /** A body-doubling room, such as a Discord voice channel. '' when unset. */
+  focusRoomUrl: string;
 }
 
 /** The on/off features, which the Now, Focus and Break screens need to know about. */
-export type FeatureKey = 'headsUp' | 'showClock' | 'showEndTime' | 'earlyBreak';
+export type FeatureKey = 'headsUp' | 'showClock' | 'showEndTime' | 'earlyBreak' | 'focusRoom';
 
 /** POST /api/blocks/:id/finish */
 export interface FinishResult {
@@ -181,7 +188,7 @@ export interface AppState {
   /** The next task on today's shortlist that isn't current: offered when a task is done. */
   nextTask: { id: number; title: string } | null;
   /** What the Now, Focus and Break screens need from Settings. */
-  timers: { focusMinutes: number } & Pick<Settings, FeatureKey>;
+  timers: Pick<Settings, 'focusMinutes' | 'focusRoomUrl' | FeatureKey>;
 }
 
 /** GET /api/today */

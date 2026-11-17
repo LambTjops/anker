@@ -275,6 +275,8 @@ describe('breaks and timers', () => {
       showClock: true,
       showEndTime: true,
       earlyBreak: true,
+      focusRoom: true,
+      focusRoomUrl: '',
     });
     await call('PATCH', '/api/settings', { focusMinutes: 50, breakMinutes: 10 });
     await call('POST', '/api/workday/start');
@@ -397,7 +399,22 @@ describe("today's plan and starting", () => {
       showClock: false,
       showEndTime: true,
       earlyBreak: true,
+      focusRoom: true,
+      focusRoomUrl: '',
     });
+  });
+
+  it('keeps an https focus room link and refuses anything else', async () => {
+    const url = 'https://discord.com/channels/1/2';
+    await call('PATCH', '/api/settings', { focusRoomUrl: url });
+    const { body: state } = await call<AppState>('GET', '/api/state');
+    expect(state.timers.focusRoomUrl).toBe(url);
+    for (const bad of ['javascript:alert(1)', 'http://example.com', 'not a link']) {
+      expect((await call('PATCH', '/api/settings', { focusRoomUrl: bad })).status).toBe(400);
+    }
+    await call('PATCH', '/api/settings', { focusRoomUrl: '' });
+    const { body: cleared } = await call<Settings>('GET', '/api/settings');
+    expect(cleared.focusRoomUrl).toBe('');
   });
 });
 

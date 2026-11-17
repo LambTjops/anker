@@ -21,7 +21,7 @@ export function Focus({
   block: Block;
   taskId: number | null;
   taskTitle: string | null;
-  features: Pick<Settings, FeatureKey>;
+  features: Pick<Settings, FeatureKey | 'focusRoomUrl'>;
   refresh: () => Promise<void>;
 }) {
   const [phase, setPhase] = useState<Phase>('running');
@@ -203,6 +203,16 @@ export function Focus({
               Stop early
             </button>
           </div>
+          {features.focusRoom && features.focusRoomUrl && (
+            <a
+              class="button quiet"
+              href={features.focusRoomUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Join the room ↗
+            </a>
+          )}
         </div>
       )}
 
