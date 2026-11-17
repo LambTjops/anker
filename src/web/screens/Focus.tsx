@@ -102,6 +102,12 @@ export function Focus({
       await refresh();
     });
 
+  // Changed your mind: back to the block as it was (the timer, paused or time's up).
+  const backToBlock = () => {
+    setSmaller('');
+    setPhase('running');
+  };
+
   // A task started as is gets a real first step; otherwise, a smaller first move.
   const stuck = () => setPhase(notBrokenDown ? 'breakdown' : 'stuck');
 
@@ -191,8 +197,8 @@ export function Focus({
             <button class="primary" type="submit" disabled={busy || !smaller.trim()}>
               Use this
             </button>
-            <button class="quiet" type="button" onClick={() => setPhase('stopping')}>
-              Back
+            <button class="quiet" type="button" onClick={backToBlock}>
+              ← Back
             </button>
           </div>
         </form>
@@ -230,6 +236,9 @@ export function Focus({
               Skip for now
             </button>
           </div>
+          <button class="quiet" type="button" onClick={backToBlock}>
+            ← Back
+          </button>
         </form>
         {error && <p class="note">{error}</p>}
       </main>
