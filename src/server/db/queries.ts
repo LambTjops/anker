@@ -99,6 +99,8 @@ interface SettingsRow {
   focus_music: number;
   focus_music_url: string;
   edit_end_time: number;
+  end_day_offer: number;
+  end_day_after: string;
 }
 
 const toTask = (r: TaskRow): Task => ({
@@ -192,6 +194,8 @@ export function getSettings(db: Db, defaults: Settings): Settings {
     focusMusic: row.focus_music === 1,
     focusMusicUrl: row.focus_music_url,
     editEndTime: row.edit_end_time === 1,
+    endDayOffer: row.end_day_offer === 1,
+    endDayAfter: row.end_day_after,
   };
 }
 
@@ -201,8 +205,9 @@ export function updateSettings(db: Db, defaults: Settings, patch: Partial<Settin
     `INSERT OR REPLACE INTO settings
        (id, focus_minutes, break_minutes, long_break_minutes, long_break_every, heads_up,
         show_clock, show_end_time, early_break, focus_room, focus_room_url,
-        calm_focus, focus_music, focus_music_url, edit_end_time)
-     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        calm_focus, focus_music, focus_music_url, edit_end_time,
+        end_day_offer, end_day_after)
+     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     next.focusMinutes,
     next.breakMinutes,
@@ -218,6 +223,8 @@ export function updateSettings(db: Db, defaults: Settings, patch: Partial<Settin
     next.focusMusic ? 1 : 0,
     next.focusMusicUrl,
     next.editEndTime ? 1 : 0,
+    next.endDayOffer ? 1 : 0,
+    next.endDayAfter,
   );
   return next;
 }

@@ -2,6 +2,7 @@ import { useState } from 'preact/hooks';
 import type { AppState } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { celebrate } from '../components/Celebration.tsx';
+import { EndDay } from '../components/EndDay.tsx';
 import { Menu } from '../components/Menu.tsx';
 import { go, useAction } from '../hooks.ts';
 import { prepareSignal } from '../signal.ts';
@@ -104,6 +105,7 @@ export function Now({
         <button class="quiet" onClick={() => go('#plan')}>
           Change today's plan
         </button>
+        {state.endDayOffer && <EndDay refresh={refresh} />}
       </>
     );
   } else if (!task) {
@@ -119,6 +121,7 @@ export function Now({
           <button class="quiet" onClick={() => go('#inbox')}>
             Open inbox
           </button>
+          {state.endDayOffer && <EndDay refresh={refresh} />}
         </div>
       </>
     );
@@ -173,6 +176,7 @@ export function Now({
           <button class="quiet" onClick={() => go(`#task/${task.id}`)}>
             Add a step
           </button>
+          {state.endDayOffer && <EndDay refresh={refresh} />}
         </div>
       </>
     );

@@ -373,6 +373,8 @@ describe('breaks and timers', () => {
       calmFocus: true,
       focusMusic: true,
       editEndTime: true,
+      endDayOffer: true,
+      endDayAfter: '15:00',
       focusMusicUrl: 'https://app.endel.io/player/focus',
     });
     await call('PATCH', '/api/settings', { focusMinutes: 50, breakMinutes: 10 });
@@ -501,6 +503,7 @@ describe("today's plan and starting", () => {
       calmFocus: true,
       focusMusic: true,
       editEndTime: true,
+      endDayOffer: true,
       focusMusicUrl: 'https://app.endel.io/player/focus',
     });
   });
@@ -516,6 +519,23 @@ describe("today's plan and starting", () => {
     await call('PATCH', '/api/settings', { focusRoomUrl: '' });
     const { body: cleared } = await call<Settings>('GET', '/api/settings');
     expect(cleared.focusRoomUrl).toBe('');
+  });
+
+  it('offers to end the day only from the chosen time, while a workday is open', async () => {
+    // The test clock starts at a fixed time; pick "from" times either side of it.
+    const nowHHMM = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Pacific/Auckland',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).format(clock);
+    expect((await call<AppState>('GET', '/api/state')).body.endDayOffer).toBe(false);
+    await call('POST', '/api/workday/start');
+    await call('PATCH', '/api/settings', { endDayAfter: nowHHMM });
+    expect((await call<AppState>('GET', '/api/state')).body.endDayOffer).toBe(true);
+    await call('PATCH', '/api/settings', { endDayOffer: false });
+    expect((await call<AppState>('GET', '/api/state')).body.endDayOffer).toBe(false);
+    expect((await call('PATCH', '/api/settings', { endDayAfter: '25:00' })).status).toBe(400);
   });
 
   it('keeps an https focus music link and refuses anything else', async () => {

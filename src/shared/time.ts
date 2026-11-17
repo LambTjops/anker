@@ -72,6 +72,12 @@ export function localDate(instant: Date, tz: string): string {
   return `${w.year}-${pad(w.month)}-${pad(w.day)}`;
 }
 
+/** Wall-clock time (HH:MM, 24-hour) of `instant` in `tz`. */
+export function localTime(instant: Date, tz: string): string {
+  const w = wallClock(instant, tz);
+  return `${pad(w.hour)}:${pad(w.minute)}`;
+}
+
 /** Adds whole calendar days to a YYYY-MM-DD string. */
 export function addDays(date: string, days: number): string {
   const [y, m, d] = date.split('-').map(Number) as [number, number, number];

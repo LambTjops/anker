@@ -88,6 +88,12 @@ export const UpdateSettingsBody = z
     calmFocus: z.boolean().optional(),
     focusMusic: z.boolean().optional(),
     editEndTime: z.boolean().optional(),
+    endDayOffer: z.boolean().optional(),
+    /** Local 24-hour time, HH:MM. */
+    endDayAfter: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+      .optional(),
     focusRoomUrl: HttpsLink.optional(),
     focusMusicUrl: HttpsLink.optional(),
   })
@@ -167,6 +173,10 @@ export interface Settings {
   focusMusic: boolean;
   /** Tap the end time on Focus to change it. */
   editEndTime: boolean;
+  /** Offer "End the day" when a task wraps up, from `endDayAfter`. */
+  endDayOffer: boolean;
+  /** Local 24-hour time, HH:MM. */
+  endDayAfter: string;
   /** A body-doubling room, such as a Discord voice channel. '' when unset. */
   focusRoomUrl: string;
   /** Focus music (Endel by default; Brain.fm or anything else). '' when unset. */
@@ -182,7 +192,8 @@ export type FeatureKey =
   | 'focusRoom'
   | 'calmFocus'
   | 'focusMusic'
-  | 'editEndTime';
+  | 'editEndTime'
+  | 'endDayOffer';
 
 /** POST /api/blocks/:id/finish */
 export interface FinishResult {
@@ -217,6 +228,8 @@ export interface AppState {
   nextTask: { id: number; title: string } | null;
   /** What the Now, Focus and Break screens need from Settings. */
   timers: Pick<Settings, 'focusMinutes' | 'focusRoomUrl' | 'focusMusicUrl' | FeatureKey>;
+  /** It's late enough (Settings → endDayAfter) to offer "End the day" when a task wraps up. */
+  endDayOffer: boolean;
 }
 
 /** GET /api/today */

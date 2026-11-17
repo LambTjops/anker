@@ -3,7 +3,10 @@ import type { FeatureKey, Settings as SettingsT } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { go, useAction } from '../hooks.ts';
 
-type NumberKey = Exclude<keyof SettingsT, FeatureKey | 'focusRoomUrl' | 'focusMusicUrl'>;
+type NumberKey = Exclude<
+  keyof SettingsT,
+  FeatureKey | 'focusRoomUrl' | 'focusMusicUrl' | 'endDayAfter'
+>;
 
 const FIELDS: { key: NumberKey; label: string; min: number; max: number }[] = [
   { key: 'focusMinutes', label: 'Focus block (minutes)', min: 1, max: 180 },
@@ -23,6 +26,7 @@ const FEATURES: { key: FeatureKey; label: string }[] = [
   { key: 'showClock', label: 'Clock under the timer' },
   { key: 'showEndTime', label: 'When the timer ends, under the timer' },
   { key: 'editEndTime', label: 'Tap the end time to change it' },
+  { key: 'endDayOffer', label: 'Offer "End the day" when a task wraps up, later in the day' },
   { key: 'earlyBreak', label: 'Offer a break after an early Done' },
   { key: 'headsUp', label: 'Soft chime 2 minutes before a block or break ends' },
   { key: 'focusRoom', label: '"Join the room" on Focus, for body doubling' },
@@ -35,6 +39,7 @@ export function Settings() {
   const [features, setFeatures] = useState<Record<FeatureKey, boolean> | null>(null);
   const [roomUrl, setRoomUrl] = useState('');
   const [musicUrl, setMusicUrl] = useState('');
+  const [endDayAfter, setEndDayAfter] = useState('');
   const [saved, setSaved] = useState(false);
   const { busy, error, run } = useAction();
 
@@ -56,9 +61,11 @@ export function Settings() {
         calmFocus: s.calmFocus,
         focusMusic: s.focusMusic,
         editEndTime: s.editEndTime,
+        endDayOffer: s.endDayOffer,
       });
       setRoomUrl(s.focusRoomUrl);
       setMusicUrl(s.focusMusicUrl);
+      setEndDayAfter(s.endDayAfter);
     });
   }, [run]);
 
@@ -75,6 +82,7 @@ export function Settings() {
         ...features,
         focusRoomUrl: roomUrl.trim(),
         focusMusicUrl: musicUrl.trim(),
+        endDayAfter: toHHMM(endDayAfter) ?? undefined,
       });
       setSaved(true);
     });
@@ -159,6 +167,24 @@ export function Settings() {
               />
             </label>
           )}
+          {features.endDayOffer && (
+            <label class="field">
+              <span>From (24-hour, e.g. 15:00)</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="15:00"
+                pattern="([01]?[0-9]|2[0-3]):?[0-5][0-9]"
+                maxLength={5}
+                value={endDayAfter}
+                onInput={(e) => {
+                  setSaved(false);
+                  setEndDayAfter(e.currentTarget.value);
+                }}
+              />
+            </label>
+          )}
           <button class="primary" type="submit" disabled={busy}>
             Save
           </button>
@@ -169,4 +195,10 @@ export function Settings() {
       {error && <p class="note">{error}</p>}
     </main>
   );
+}
+
+/** "15:00", "1500" or "9:30" → "HH:MM"; null if it isn't a time. */
+function toHHMM(text: string): string | null {
+  const m = /^([01]?\d|2[0-3]):?([0-5]\d)$/.exec(text.trim());
+  return m ? `${m[1]!.padStart(2, '0')}:${m[2]}` : null;
 }

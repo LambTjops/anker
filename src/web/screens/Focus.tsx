@@ -6,6 +6,7 @@ import { mmss, useCountdown } from '../countdown.ts';
 import { celebrate } from '../components/Celebration.tsx';
 import { Clock } from '../components/Clock.tsx';
 import { CornerLinks } from '../components/CornerLinks.tsx';
+import { EndDay } from '../components/EndDay.tsx';
 import { MusicIcon, PeopleIcon, StopIcon, ThoughtIcon } from '../components/icons.tsx';
 import { ParkThought } from '../components/ParkThought.tsx';
 import { useAction } from '../hooks.ts';
@@ -20,12 +21,15 @@ export function Focus({
   taskId,
   taskTitle,
   features,
+  endDayOffer,
   refresh,
 }: {
   block: Block;
   taskId: number | null;
   taskTitle: string | null;
   features: Pick<Settings, FeatureKey | 'focusRoomUrl' | 'focusMusicUrl'>;
+  /** Offer "End the day" after an early Done, later in the day. */
+  endDayOffer: boolean;
   refresh: () => Promise<void>;
 }) {
   const [phase, setPhase] = useState<Phase>('running');
@@ -152,6 +156,7 @@ export function Focus({
           <button class="big" disabled={busy} onClick={() => void refresh()}>
             Carry on
           </button>
+          {endDayOffer && <EndDay refresh={refresh} />}
         </div>
         {error && <p class="note">{error}</p>}
       </main>

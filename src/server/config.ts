@@ -51,6 +51,8 @@ export function defaultSettings(config: Config): Settings {
     calmFocus: true,
     focusMusic: true,
     editEndTime: true,
+    endDayOffer: true,
+    endDayAfter: '15:00',
     focusMusicUrl: 'https://app.endel.io/player/focus',
   };
 }

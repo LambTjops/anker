@@ -18,6 +18,7 @@ import { logicalDate, mostRecentCutoff } from '../../shared/time.ts';
 import { defaultSettings, type Config } from '../config.ts';
 import type { Db } from '../db/db.ts';
 import * as q from '../db/queries.ts';
+import { isEndOfDay } from '../domain/day.ts';
 
 export interface ApiDeps {
   db: Db;
@@ -73,7 +74,9 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
         focusMusic: timers.focusMusic,
         focusMusicUrl: timers.focusMusicUrl,
         editEndTime: timers.editEndTime,
+        endDayOffer: timers.endDayOffer,
       },
+      endDayOffer: open !== null && timers.endDayOffer && isEndOfDay(at, day, timers.endDayAfter),
     };
   });
 

@@ -1,6 +1,6 @@
 // Pure rules for workdays, focus blocks and breaks. Every function takes `now`; none do I/O.
 import type { BlockOutcome } from '../../shared/api.ts';
-import { mostRecentCutoff } from '../../shared/time.ts';
+import { localTime, mostRecentCutoff } from '../../shared/time.ts';
 
 export interface DayConfig {
   tz: string;
@@ -121,4 +121,13 @@ export function focusSeconds(
   // plannedSeconds already includes earlier pauses (resume adds them), not the current one.
   const active = elapsed - pausedBefore - pausedNow;
   return Math.max(0, Math.min(active, block.plannedSeconds - pausedBefore));
+}
+
+/**
+ * Whether it's late enough in the logical day to offer "End the day": from `after` (local
+ * HH:MM) until the cutoff, which may be after midnight.
+ */
+export function isEndOfDay(now: Date, day: DayConfig, after: string): boolean {
+  const t = localTime(now, day.tz);
+  return after <= day.cutoff ? t >= after && t < day.cutoff : t >= after || t < day.cutoff;
 }

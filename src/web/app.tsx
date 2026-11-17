@@ -71,6 +71,7 @@ export function App() {
         taskId={state.currentTask?.id ?? null}
         taskTitle={state.currentTask?.title ?? null}
         features={state.timers}
+        endDayOffer={state.endDayOffer}
         refresh={refresh}
       />
     );

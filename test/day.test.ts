@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { breakKind, earnsBreak, isCountingDown } from '../src/server/domain/day.ts';
+import { breakKind, earnsBreak, isCountingDown, isEndOfDay } from '../src/server/domain/day.ts';
 
 const block = { startedAt: '2026-09-24T21:00:00.000Z', plannedSeconds: 25 * 60 };
 const at = (iso: string) => new Date(iso);
@@ -42,5 +42,37 @@ describe('breaks', () => {
         at('2026-09-24T21:11:00.000Z'),
       ),
     ).toBe(false);
+  });
+});
+
+describe('isEndOfDay', () => {
+  const day = { tz: 'Pacific/Auckland', cutoff: '04:00' };
+  // 2026-11-17 is NZDT (UTC+13).
+  const nz = (hhmm: string, date = '2026-11-17') => {
+    const [h, m] = hhmm.split(':').map(Number) as [number, number];
+    return new Date(
+      Date.UTC(
+        Number(date.slice(0, 4)),
+        Number(date.slice(5, 7)) - 1,
+        Number(date.slice(8)),
+        h - 13,
+        m,
+      ),
+    );
+  };
+
+  it('is late from the chosen time until the cutoff after midnight', () => {
+    expect(isEndOfDay(nz('14:59'), day, '15:00')).toBe(false);
+    expect(isEndOfDay(nz('15:00'), day, '15:00')).toBe(true);
+    expect(isEndOfDay(nz('23:30'), day, '15:00')).toBe(true);
+    expect(isEndOfDay(nz('02:00'), day, '15:00')).toBe(true);
+    expect(isEndOfDay(nz('04:00'), day, '15:00')).toBe(false);
+    expect(isEndOfDay(nz('09:00'), day, '15:00')).toBe(false);
+  });
+
+  it('handles a chosen time after midnight, before the cutoff', () => {
+    expect(isEndOfDay(nz('01:00'), day, '01:30')).toBe(false);
+    expect(isEndOfDay(nz('02:00'), day, '01:30')).toBe(true);
+    expect(isEndOfDay(nz('23:00'), day, '01:30')).toBe(false);
   });
 });
