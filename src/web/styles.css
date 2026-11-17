@@ -457,6 +457,51 @@ button.plus-five {
   margin: 0;
 }
 
+/* The end time, when it can be tapped to change it: looks like the text around it. */
+button.clock-edit {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px dotted currentColor;
+  border-radius: 0;
+  /* A 48px tap area without moving the text around it. */
+  padding: 0.75rem 0.25rem;
+  margin: -0.75rem -0.25rem;
+  background-clip: content-box;
+  min-height: 0;
+  display: inline;
+}
+
+button.clock-edit:hover {
+  background: transparent;
+  color: var(--text);
+}
+
+.clock-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.clock-form label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.clock-form input {
+  font: inherit;
+  min-height: var(--tap);
+  padding: 0 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  color-scheme: light dark;
+}
+
 .progress {
   width: min(20rem, 100%);
   height: 4px;

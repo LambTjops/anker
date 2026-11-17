@@ -50,6 +50,7 @@ export function defaultSettings(config: Config): Settings {
     focusRoomUrl: '',
     calmFocus: true,
     focusMusic: true,
+    editEndTime: true,
     focusMusicUrl: 'https://app.endel.io/player/focus',
   };
 }

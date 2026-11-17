@@ -89,6 +89,8 @@ export const api = {
   finishBlock: (id: number, outcome: BlockOutcome, takeBreak?: boolean) =>
     request<FinishResult>('POST', `/api/blocks/${id}/finish`, { outcome, takeBreak }),
   extendBlock: (id: number) => request<Block>('POST', `/api/blocks/${id}/extend`),
+  setBlockEnd: (id: number, endsAt: string) =>
+    request<Block>('PATCH', `/api/blocks/${id}`, { endsAt }),
 
   extendBreak: (id: number) => request<Break>('POST', `/api/breaks/${id}/extend`),
   endBreak: (id: number) => request<void>('POST', `/api/breaks/${id}/end`),

@@ -4,6 +4,7 @@ import {
   CreateTaskBody,
   FinishBlockBody,
   IdParams,
+  UpdateBlockBody,
   ListTasksQuery,
   PlanBody,
   StartBlockBody,
@@ -71,6 +72,7 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
         calmFocus: timers.calmFocus,
         focusMusic: timers.focusMusic,
         focusMusicUrl: timers.focusMusicUrl,
+        editEndTime: timers.editEndTime,
       },
     };
   });
@@ -159,6 +161,11 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
     const { id } = IdParams.parse(req.params);
     const { outcome, takeBreak } = FinishBlockBody.parse(req.body);
     return q.finishBlock(db, id, outcome, now(), settings(), takeBreak);
+  });
+
+  app.patch('/api/blocks/:id', async (req) => {
+    const { endsAt } = UpdateBlockBody.parse(req.body);
+    return q.setBlockEnd(db, IdParams.parse(req.params).id, new Date(endsAt), now());
   });
 
   app.post('/api/blocks/:id/extend', async (req) =>

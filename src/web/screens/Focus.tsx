@@ -58,6 +58,16 @@ export function Focus({
       await refresh();
     });
 
+  const setEnd = async (endsAt: string) => {
+    let saved = false;
+    await run(async () => {
+      await api.setBlockEnd(block.id, endsAt);
+      await refresh();
+      saved = true;
+    });
+    return saved;
+  };
+
   const submitSmaller = (e: Event) => {
     e.preventDefault();
     const text = smaller.trim();
@@ -176,7 +186,11 @@ export function Focus({
           <div class="progress" aria-hidden="true">
             <div style={{ width: `${progress * 100}%` }} />
           </div>
-          <Clock endsAt={block.endsAt} features={features} />
+          <Clock
+            endsAt={block.endsAt}
+            features={features}
+            onSetEnd={features.editEndTime ? setEnd : undefined}
+          />
         </div>
       )}
 

@@ -250,6 +250,33 @@ describe('breaks and timers', () => {
     expect(brk.plannedSeconds).toBe(10 * 60);
   });
 
+  it('moving the end time resizes a running block, within limits', async () => {
+    await call('POST', '/api/workday/start');
+    await setUpCurrentTask(['A']);
+    const { body: block } = await call<Block>('POST', '/api/blocks');
+    const at = (minutes: number) => new Date(clock.getTime() + minutes * 60_000).toISOString();
+    advance(10);
+    const { body: moved } = await call<Block>('PATCH', `/api/blocks/${block.id}`, {
+      endsAt: at(30),
+    });
+    expect(moved.plannedSeconds).toBe(40 * 60);
+    expect(moved.endsAt).toBe(at(30));
+    const { body: shorter } = await call<Block>('PATCH', `/api/blocks/${block.id}`, {
+      endsAt: at(5),
+    });
+    expect(shorter.plannedSeconds).toBe(15 * 60);
+    for (const bad of [at(-1), at(0.5), at(4 * 60)]) {
+      const res = await call<{ error: { code: string } }>('PATCH', `/api/blocks/${block.id}`, {
+        endsAt: bad,
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('bad_end_time');
+    }
+    expect((await call('PATCH', `/api/blocks/${block.id}`, { endsAt: 'soon' })).status).toBe(400);
+    advance(6);
+    expect((await call('PATCH', `/api/blocks/${block.id}`, { endsAt: at(10) })).status).toBe(409);
+  });
+
   it('skipping a break or starting a block ends it', async () => {
     await call('POST', '/api/workday/start');
     await setUpCurrentTask(['A', 'B', 'C']);
@@ -279,6 +306,7 @@ describe('breaks and timers', () => {
       focusRoomUrl: '',
       calmFocus: true,
       focusMusic: true,
+      editEndTime: true,
       focusMusicUrl: 'https://app.endel.io/player/focus',
     });
     await call('PATCH', '/api/settings', { focusMinutes: 50, breakMinutes: 10 });
@@ -406,6 +434,7 @@ describe("today's plan and starting", () => {
       focusRoomUrl: '',
       calmFocus: true,
       focusMusic: true,
+      editEndTime: true,
       focusMusicUrl: 'https://app.endel.io/player/focus',
     });
   });

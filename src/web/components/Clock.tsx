@@ -11,25 +11,100 @@ const format = new Intl.DateTimeFormat(undefined, {
 /**
  * The time of day and when the timer ends, small and muted, so a running timer has a
  * real-world anchor. Each half can be turned off in Settings.
+ *
+ * With `onSetEnd`, the end time is a button: tap it, pick a time, and the timer ends then.
  */
 export function Clock({
   endsAt,
   features,
+  onSetEnd,
 }: {
   endsAt: string;
   features: Pick<Settings, 'showClock' | 'showEndTime'>;
+  /** Resolves true once the new end is saved. */
+  onSetEnd?: (endsAt: string) => Promise<boolean>;
 }) {
   const [now, setNow] = useState(serverNow);
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState('');
   useEffect(() => {
     if (!features.showClock) return;
     const tick = setInterval(() => setNow(serverNow()), 10_000);
     return () => clearInterval(tick);
   }, [features.showClock]);
 
-  const parts = [
-    features.showClock && format.format(now),
-    features.showEndTime && `ends ${format.format(new Date(endsAt))}`,
-  ].filter(Boolean);
-  if (parts.length === 0) return null;
-  return <p class="clock">{parts.join(' · ')}</p>;
+  const end = format.format(new Date(endsAt));
+
+  if (editing && onSetEnd) {
+    const save = async (e: Event) => {
+      e.preventDefault();
+      const at = nextOccurrence(value);
+      if (at && (await onSetEnd(at))) setEditing(false);
+    };
+    return (
+      <form class="clock clock-form" onSubmit={save}>
+        <label>
+          <span>Ends at</span>
+          <input
+            type="time"
+            value={value}
+            onInput={(e) => setValue(e.currentTarget.value)}
+            onKeyDown={(e) => e.key === 'Escape' && setEditing(false)}
+            autoFocus
+            required
+          />
+        </label>
+        <div class="row">
+          <button class="primary" type="submit">
+            Set
+          </button>
+          <button class="quiet" type="button" onClick={() => setEditing(false)}>
+            Cancel
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  const clock = features.showClock && format.format(now);
+  const ends = features.showEndTime && (
+    <>
+      {clock && ' · '}
+      {onSetEnd ? (
+        <button
+          class="clock-edit"
+          title="Change when this block ends"
+          onClick={() => {
+            setValue(end);
+            setEditing(true);
+          }}
+        >
+          ends {end}
+        </button>
+      ) : (
+        `ends ${end}`
+      )}
+    </>
+  );
+  if (!clock && !ends) return null;
+  return (
+    <p class="clock">
+      {clock}
+      {ends}
+    </p>
+  );
+}
+
+/**
+ * The next time the clock reads `hhmm` (from an `<input type="time">`, in this device's
+ * time zone, which is also how the end time is shown), as an ISO instant.
+ */
+function nextOccurrence(hhmm: string): string | null {
+  const m = /^(\d{2}):(\d{2})/.exec(hhmm);
+  if (!m) return null;
+  const now = new Date(serverNow());
+  const at = new Date(now);
+  at.setHours(Number(m[1]), Number(m[2]), 0, 0);
+  if (at <= now) at.setDate(at.getDate() + 1);
+  return at.toISOString();
 }

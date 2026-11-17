@@ -21,9 +21,10 @@ import {
   EXTEND_SECONDS,
   focusSeconds,
   isCountingDown,
+  plannedSecondsEndingAt,
   type DayConfig,
 } from '../domain/day.ts';
-import { conflict, notFound } from '../errors.ts';
+import { AppError, conflict, notFound } from '../errors.ts';
 import type { Db } from './db.ts';
 
 // ---- Row mapping ----
@@ -94,6 +95,7 @@ interface SettingsRow {
   calm_focus: number;
   focus_music: number;
   focus_music_url: string;
+  edit_end_time: number;
 }
 
 const toTask = (r: TaskRow): Task => ({
@@ -179,6 +181,7 @@ export function getSettings(db: Db, defaults: Settings): Settings {
     calmFocus: row.calm_focus === 1,
     focusMusic: row.focus_music === 1,
     focusMusicUrl: row.focus_music_url,
+    editEndTime: row.edit_end_time === 1,
   };
 }
 
@@ -188,8 +191,8 @@ export function updateSettings(db: Db, defaults: Settings, patch: Partial<Settin
     `INSERT OR REPLACE INTO settings
        (id, focus_minutes, break_minutes, long_break_minutes, long_break_every, heads_up,
         show_clock, show_end_time, early_break, focus_room, focus_room_url,
-        calm_focus, focus_music, focus_music_url)
-     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        calm_focus, focus_music, focus_music_url, edit_end_time)
+     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     next.focusMinutes,
     next.breakMinutes,
@@ -204,6 +207,7 @@ export function updateSettings(db: Db, defaults: Settings, patch: Partial<Settin
     next.calmFocus ? 1 : 0,
     next.focusMusic ? 1 : 0,
     next.focusMusicUrl,
+    next.editEndTime ? 1 : 0,
   );
   return next;
 }
@@ -609,6 +613,20 @@ export function extendBlock(db: Db, id: number, now: Date): Block {
     EXTEND_SECONDS,
     id,
   );
+  return toBlock(db.prepare(`${BLOCK_SELECT} WHERE fb.id = ?`).get(id) as BlockRow);
+}
+
+/** Moves the running block's end to `endsAt`, so the countdown follows. */
+export function setBlockEnd(db: Db, id: number, endsAt: Date, now: Date): Block {
+  const block = openBlockRow(db);
+  if (!block || block.id !== id || !isCountingDown(timer(block), now)) {
+    throw conflict('block_not_running', 'That block is not counting down');
+  }
+  const planned = plannedSecondsEndingAt(block.started_at, endsAt, now);
+  if (planned === null) {
+    throw new AppError(400, 'bad_end_time', 'Pick a time at least a minute away, within 4 hours');
+  }
+  db.prepare('UPDATE focus_blocks SET planned_seconds = ? WHERE id = ?').run(planned, id);
   return toBlock(db.prepare(`${BLOCK_SELECT} WHERE fb.id = ?`).get(id) as BlockRow);
 }
 

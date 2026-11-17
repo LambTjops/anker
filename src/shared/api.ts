@@ -54,6 +54,9 @@ export const FinishBlockBody = z.object({
 export const PLAN_LIMIT = 3;
 
 /** POST /api/blocks. `minutes` picks this block's length; the default comes from Settings. */
+/** PATCH /api/blocks/:id: move the running block's end. The server checks it's sensible. */
+export const UpdateBlockBody = z.object({ endsAt: z.iso.datetime({ offset: true }) });
+
 export const StartBlockBody = z
   .object({ minutes: z.number().int().min(1).max(180).optional() })
   .optional()
@@ -84,6 +87,7 @@ export const UpdateSettingsBody = z
     focusRoom: z.boolean().optional(),
     calmFocus: z.boolean().optional(),
     focusMusic: z.boolean().optional(),
+    editEndTime: z.boolean().optional(),
     focusRoomUrl: HttpsLink.optional(),
     focusMusicUrl: HttpsLink.optional(),
   })
@@ -158,6 +162,8 @@ export interface Settings {
   calmFocus: boolean;
   /** A link to focus music (Endel) on Focus. */
   focusMusic: boolean;
+  /** Tap the end time on Focus to change it. */
+  editEndTime: boolean;
   /** A body-doubling room, such as a Discord voice channel. '' when unset. */
   focusRoomUrl: string;
   /** Focus music (Endel by default; Brain.fm or anything else). '' when unset. */
@@ -166,7 +172,14 @@ export interface Settings {
 
 /** The on/off features, which the Now, Focus and Break screens need to know about. */
 export type FeatureKey =
-  'headsUp' | 'showClock' | 'showEndTime' | 'earlyBreak' | 'focusRoom' | 'calmFocus' | 'focusMusic';
+  | 'headsUp'
+  | 'showClock'
+  | 'showEndTime'
+  | 'earlyBreak'
+  | 'focusRoom'
+  | 'calmFocus'
+  | 'focusMusic'
+  | 'editEndTime';
 
 /** POST /api/blocks/:id/finish */
 export interface FinishResult {
