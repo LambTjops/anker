@@ -452,7 +452,7 @@ button.plus-five {
 
 .clock {
   color: var(--muted);
-  font-size: 0.95rem;
+  font-size: 1.25rem;
   font-variant-numeric: tabular-nums;
   margin: 0;
 }
