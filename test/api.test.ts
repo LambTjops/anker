@@ -279,6 +279,7 @@ describe('breaks and timers', () => {
       focusRoomUrl: '',
       calmFocus: true,
       focusMusic: true,
+      focusMusicUrl: 'https://app.endel.io/player/focus',
     });
     await call('PATCH', '/api/settings', { focusMinutes: 50, breakMinutes: 10 });
     await call('POST', '/api/workday/start');
@@ -405,6 +406,7 @@ describe("today's plan and starting", () => {
       focusRoomUrl: '',
       calmFocus: true,
       focusMusic: true,
+      focusMusicUrl: 'https://app.endel.io/player/focus',
     });
   });
 
@@ -419,6 +421,16 @@ describe("today's plan and starting", () => {
     await call('PATCH', '/api/settings', { focusRoomUrl: '' });
     const { body: cleared } = await call<Settings>('GET', '/api/settings');
     expect(cleared.focusRoomUrl).toBe('');
+  });
+
+  it('keeps an https focus music link and refuses anything else', async () => {
+    const url = 'https://my.brain.fm/focus';
+    await call('PATCH', '/api/settings', { focusMusicUrl: url });
+    const { body: state } = await call<AppState>('GET', '/api/state');
+    expect(state.timers.focusMusicUrl).toBe(url);
+    for (const bad of ['javascript:alert(1)', 'http://example.com', 'intent://x']) {
+      expect((await call('PATCH', '/api/settings', { focusMusicUrl: bad })).status).toBe(400);
+    }
   });
 });
 

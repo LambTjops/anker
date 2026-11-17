@@ -67,6 +67,9 @@ export const PlanBody = z.object({
     .refine((ids) => new Set(ids).size === ids.length, 'Each task only once'),
 });
 
+/** '' clears it. Only https links, so it can't carry a script. */
+const HttpsLink = z.union([z.literal(''), z.url({ protocol: /^https$/ }).max(500)]);
+
 export const UpdateSettingsBody = z
   .object({
     focusMinutes: z.number().int().min(1).max(180).optional(),
@@ -81,8 +84,8 @@ export const UpdateSettingsBody = z
     focusRoom: z.boolean().optional(),
     calmFocus: z.boolean().optional(),
     focusMusic: z.boolean().optional(),
-    /** '' clears it. Only https links, so it can't carry a script. */
-    focusRoomUrl: z.union([z.literal(''), z.url({ protocol: /^https$/ }).max(500)]).optional(),
+    focusRoomUrl: HttpsLink.optional(),
+    focusMusicUrl: HttpsLink.optional(),
   })
   .refine((b) => Object.keys(b).length > 0, 'Nothing to update');
 
@@ -157,6 +160,8 @@ export interface Settings {
   focusMusic: boolean;
   /** A body-doubling room, such as a Discord voice channel. '' when unset. */
   focusRoomUrl: string;
+  /** Focus music (Endel by default; Brain.fm or anything else). '' when unset. */
+  focusMusicUrl: string;
 }
 
 /** The on/off features, which the Now, Focus and Break screens need to know about. */
@@ -195,7 +200,7 @@ export interface AppState {
   /** The next task on today's shortlist that isn't current: offered when a task is done. */
   nextTask: { id: number; title: string } | null;
   /** What the Now, Focus and Break screens need from Settings. */
-  timers: Pick<Settings, 'focusMinutes' | 'focusRoomUrl' | FeatureKey>;
+  timers: Pick<Settings, 'focusMinutes' | 'focusRoomUrl' | 'focusMusicUrl' | FeatureKey>;
 }
 
 /** GET /api/today */

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Block, BlockOutcome, FeatureKey, Settings } from '../../shared/api.ts';
 import { api } from '../api.ts';
+import { appLink } from '../appLink.ts';
 import { mmss, useCountdown } from '../countdown.ts';
 import { celebrate } from '../components/Celebration.tsx';
 import { Clock } from '../components/Clock.tsx';
@@ -8,9 +9,6 @@ import { GearIcon, MusicIcon, PeopleIcon, StopIcon, ThoughtIcon } from '../compo
 import { ParkThought } from '../components/ParkThought.tsx';
 import { useAction } from '../hooks.ts';
 import { signalTimerEnd, softCue } from '../signal.ts';
-
-/** Endel's focus soundscape, opened in a new tab. */
-const FOCUS_MUSIC_URL = 'https://app.endel.io/player/focus';
 
 type Phase = 'running' | 'stopping' | 'stuck' | 'breakdown';
 
@@ -25,12 +23,14 @@ export function Focus({
   block: Block;
   taskId: number | null;
   taskTitle: string | null;
-  features: Pick<Settings, FeatureKey | 'focusRoomUrl'>;
+  features: Pick<Settings, FeatureKey | 'focusRoomUrl' | 'focusMusicUrl'>;
   refresh: () => Promise<void>;
 }) {
   const [phase, setPhase] = useState<Phase>('running');
   const [smaller, setSmaller] = useState('');
   const shown = useTapToShow();
+  const music =
+    features.focusMusic && features.focusMusicUrl ? appLink(features.focusMusicUrl) : null;
   const [parking, setParking] = useState(false);
   const reveal = `${features.calmFocus ? ' reveal' : ''}${shown.on ? ' shown' : ''}`;
   const { busy, error, run } = useAction();
@@ -215,16 +215,16 @@ export function Focus({
         </div>
       ) : (
         <div class={`stack${reveal}`}>
-          {((features.focusRoom && features.focusRoomUrl) || features.focusMusic) && (
+          {((features.focusRoom && features.focusRoomUrl) || music) && (
             <div class="row">
-              {features.focusMusic && (
+              {music && (
                 <a
                   class="button icon quiet"
-                  href={FOCUS_MUSIC_URL}
-                  target="_blank"
+                  href={music.href}
+                  target={music.external ? '_blank' : undefined}
                   rel="noopener noreferrer"
-                  aria-label="Focus music (Endel)"
-                  title="Focus music (Endel)"
+                  aria-label="Focus music"
+                  title="Focus music"
                 >
                   <MusicIcon />
                 </a>

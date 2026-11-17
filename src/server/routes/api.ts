@@ -70,6 +70,7 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
         focusRoomUrl: timers.focusRoomUrl,
         calmFocus: timers.calmFocus,
         focusMusic: timers.focusMusic,
+        focusMusicUrl: timers.focusMusicUrl,
       },
     };
   });

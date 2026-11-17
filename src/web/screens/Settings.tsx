@@ -3,7 +3,7 @@ import type { FeatureKey, Settings as SettingsT } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { go, useAction } from '../hooks.ts';
 
-type NumberKey = Exclude<keyof SettingsT, FeatureKey | 'focusRoomUrl'>;
+type NumberKey = Exclude<keyof SettingsT, FeatureKey | 'focusRoomUrl' | 'focusMusicUrl'>;
 
 const FIELDS: { key: NumberKey; label: string; min: number; max: number }[] = [
   { key: 'focusMinutes', label: 'Focus block (minutes)', min: 1, max: 180 },
@@ -25,7 +25,7 @@ const FEATURES: { key: FeatureKey; label: string }[] = [
   { key: 'earlyBreak', label: '"Done, take a break" when you stop early' },
   { key: 'headsUp', label: 'Soft chime 2 minutes before a block or break ends' },
   { key: 'focusRoom', label: '"Join the room" on Focus, for body doubling' },
-  { key: 'focusMusic', label: 'Focus music link (Endel) on Focus' },
+  { key: 'focusMusic', label: 'Focus music link on Focus' },
 ];
 
 /** Timer lengths and on/off features. Changes apply from the next block or break. */
@@ -33,6 +33,7 @@ export function Settings() {
   const [form, setForm] = useState<Record<NumberKey, string> | null>(null);
   const [features, setFeatures] = useState<Record<FeatureKey, boolean> | null>(null);
   const [roomUrl, setRoomUrl] = useState('');
+  const [musicUrl, setMusicUrl] = useState('');
   const [saved, setSaved] = useState(false);
   const { busy, error, run } = useAction();
 
@@ -55,6 +56,7 @@ export function Settings() {
         focusMusic: s.focusMusic,
       });
       setRoomUrl(s.focusRoomUrl);
+      setMusicUrl(s.focusMusicUrl);
     });
   }, [run]);
 
@@ -70,6 +72,7 @@ export function Settings() {
         longBreakEvery: Number(form.longBreakEvery),
         ...features,
         focusRoomUrl: roomUrl.trim(),
+        focusMusicUrl: musicUrl.trim(),
       });
       setSaved(true);
     });
@@ -133,6 +136,23 @@ export function Settings() {
                 onInput={(e) => {
                   setSaved(false);
                   setRoomUrl(e.currentTarget.value);
+                }}
+              />
+            </label>
+          )}
+          {features.focusMusic && (
+            <label class="field">
+              <span>Music link (Endel, Brain.fm, a playlist…)</span>
+              <input
+                type="url"
+                inputMode="url"
+                placeholder="https://app.endel.io/player/focus"
+                pattern="https://.*"
+                maxLength={500}
+                value={musicUrl}
+                onInput={(e) => {
+                  setSaved(false);
+                  setMusicUrl(e.currentTarget.value);
                 }}
               />
             </label>
