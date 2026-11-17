@@ -238,6 +238,7 @@ button.icon {
 
 input[type='text'],
 input[type='number'],
+input[type='url'],
 textarea {
   font: inherit;
   width: 100%;
@@ -250,6 +251,7 @@ textarea {
 }
 
 input[type='text']::placeholder,
+input[type='url']::placeholder,
 textarea::placeholder {
   color: var(--faint);
 }
