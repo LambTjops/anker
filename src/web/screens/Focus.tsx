@@ -1,20 +1,15 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import type { Block, BlockOutcome, FeatureKey, Settings } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { appLink } from '../appLink.ts';
 import { mmss, useCountdown } from '../countdown.ts';
 import { celebrate } from '../components/Celebration.tsx';
 import { Clock } from '../components/Clock.tsx';
-import {
-  GearIcon,
-  InboxIcon,
-  MusicIcon,
-  PeopleIcon,
-  StopIcon,
-  ThoughtIcon,
-} from '../components/icons.tsx';
+import { CornerLinks } from '../components/CornerLinks.tsx';
+import { MusicIcon, PeopleIcon, StopIcon, ThoughtIcon } from '../components/icons.tsx';
 import { ParkThought } from '../components/ParkThought.tsx';
 import { useAction } from '../hooks.ts';
+import { useTapToShow } from '../tapToShow.ts';
 import { signalTimerEnd, softCue } from '../signal.ts';
 
 type Phase = 'running' | 'stopping' | 'stuck' | 'breakdown' | 'doneEarly';
@@ -230,18 +225,8 @@ export function Focus({
       onPointerUpCapture={shown.onPointerUp}
       onClickCapture={shown.onClick}
     >
-      {/* Always hidden until hover, a key or a tap, whatever Calm Focus says. The inbox
-          only while paused, so it doesn't pull you away mid-block. */}
-      <div class={`row corner reveal${shown.on ? ' shown' : ''}`}>
-        {paused && (
-          <a class="button icon quiet" href="#inbox" aria-label="Inbox" title="Inbox">
-            <InboxIcon />
-          </a>
-        )}
-        <a class="button icon quiet" href="#settings" aria-label="Settings" title="Settings">
-          <GearIcon />
-        </a>
-      </div>
+      {/* The inbox only while paused, so it doesn't pull you away mid-block. */}
+      <CornerLinks shown={shown.on} inbox={paused} />
       <div class="stack" style={{ gap: '0.5rem' }}>
         {taskTitle && taskTitle !== stepText && <p class="task-label">{taskTitle}</p>}
         <h1 class="step-text">{stepText}</h1>
@@ -377,46 +362,4 @@ export function Focus({
       {error && <p class="note">{error}</p>}
     </main>
   );
-}
-
-/** How long the buttons stay after a tap on a touch screen. */
-const SHOW_MS = 5000;
-
-/**
- * On a touch screen, a tap shows the hidden Focus buttons for a few seconds. With a mouse,
- * CSS shows them while the pointer is over them (`.reveal:hover`).
- *
- * A tap that lands on a hidden button only shows it: the tap's own click is swallowed.
- * (The buttons become visible as the finger goes down, so CSS alone can't stop the click.)
- */
-function useTapToShow() {
-  const [on, setOn] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const swallow = useRef(false);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  const onPointerDown = (e: PointerEvent) => {
-    if (e.pointerType === 'mouse') return;
-    swallow.current = startsOnHidden(e.target);
-    setOn(true);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setOn(false), SHOW_MS);
-  };
-  const onPointerUp = () => {
-    // The click follows pointerup straight away; don't let a stale flag eat a later one.
-    if (swallow.current) setTimeout(() => (swallow.current = false), 400);
-  };
-  const onClick = (e: MouseEvent) => {
-    if (!swallow.current) return;
-    swallow.current = false;
-    e.preventDefault();
-    e.stopPropagation();
-  };
-  return { on, onPointerDown, onPointerUp, onClick };
-}
-
-/** Whether the press began on a control that was still hidden (faded out) at that moment. */
-function startsOnHidden(target: EventTarget | null): boolean {
-  if (!(target instanceof Element)) return false;
-  const group = target.closest('.reveal');
-  return group !== null && Number(getComputedStyle(group).opacity) < 0.5;
 }

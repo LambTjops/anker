@@ -1,9 +1,11 @@
 import type { Break as BreakT, FeatureKey, Settings } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { Clock } from '../components/Clock.tsx';
+import { CornerLinks } from '../components/CornerLinks.tsx';
 import { mmss, useCountdown } from '../countdown.ts';
 import { useAction } from '../hooks.ts';
 import { signalTimerEnd, softCue } from '../signal.ts';
+import { useTapToShow } from '../tapToShow.ts';
 
 /** A break between focus blocks. When it runs out, Now comes back; nothing starts itself. */
 export function Break({
@@ -18,6 +20,7 @@ export function Break({
   onOver: () => void;
 }) {
   const { busy, error, run } = useAction();
+  const shown = useTapToShow();
 
   const leave = () =>
     run(async () => {
@@ -46,7 +49,13 @@ export function Break({
   const progress = Math.min(1, 1 - remaining / (brk.plannedSeconds * 1000));
 
   return (
-    <main class="screen centred">
+    <main
+      class="screen centred"
+      onPointerDownCapture={shown.onPointerDown}
+      onPointerUpCapture={shown.onPointerUp}
+      onClickCapture={shown.onClick}
+    >
+      <CornerLinks shown={shown.on} inbox />
       <div class="stack">
         <h1 class="headline">
           {brk.kind === 'long' ? 'Time for a longer break.' : 'Take a break.'}
