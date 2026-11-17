@@ -725,6 +725,20 @@ export function startBreakNow(db: Db, now: Date, settings: Settings): Break {
   })();
 }
 
+/** Moves the running break's end to `endsAt`, so the countdown follows. */
+export function setBreakEnd(db: Db, id: number, endsAt: Date, now: Date): Break {
+  const row = openBreakRow(db);
+  if (!row || row.id !== id || !isCountingDown(timer(row), now)) {
+    throw conflict('break_not_running', 'That break is not counting down');
+  }
+  const planned = plannedSecondsEndingAt(row.started_at, endsAt, now);
+  if (planned === null) {
+    throw new AppError(400, 'bad_end_time', 'Pick a time at least a minute away, within 4 hours');
+  }
+  db.prepare('UPDATE breaks SET planned_seconds = ? WHERE id = ?').run(planned, id);
+  return toBreak(db.prepare('SELECT * FROM breaks WHERE id = ?').get(id) as BreakRow);
+}
+
 /** "+5 min" on a running break. */
 export function extendBreak(db: Db, id: number, now: Date): Break {
   const row = openBreakRow(db);

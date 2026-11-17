@@ -330,6 +330,19 @@ describe('breaks and timers', () => {
     expect((await call('POST', '/api/breaks')).status).toBe(409);
   });
 
+  it('moving the end time resizes a running break', async () => {
+    await call('POST', '/api/workday/start');
+    await setUpCurrentTask(['A', 'B']);
+    const result = await runBlock('done');
+    const id = result.break!.id;
+    const at = (minutes: number) => new Date(clock.getTime() + minutes * 60_000).toISOString();
+    const { body: moved } = await call<Break>('PATCH', `/api/breaks/${id}`, { endsAt: at(12) });
+    expect(moved.plannedSeconds).toBe(12 * 60);
+    expect((await call('PATCH', `/api/breaks/${id}`, { endsAt: at(-1) })).status).toBe(400);
+    advance(13);
+    expect((await call('PATCH', `/api/breaks/${id}`, { endsAt: at(5) })).status).toBe(409);
+  });
+
   it('skipping a break or starting a block ends it', async () => {
     await call('POST', '/api/workday/start');
     await setUpCurrentTask(['A', 'B', 'C']);

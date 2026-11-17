@@ -4,7 +4,7 @@ import {
   CreateTaskBody,
   FinishBlockBody,
   IdParams,
-  UpdateBlockBody,
+  UpdateTimerBody,
   ListTasksQuery,
   PlanBody,
   StartBlockBody,
@@ -164,7 +164,7 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
   });
 
   app.patch('/api/blocks/:id', async (req) => {
-    const { endsAt } = UpdateBlockBody.parse(req.body);
+    const { endsAt } = UpdateTimerBody.parse(req.body);
     return q.setBlockEnd(db, IdParams.parse(req.params).id, new Date(endsAt), now());
   });
 
@@ -183,6 +183,11 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
   // ---- Breaks ----
 
   app.post('/api/breaks', async () => q.startBreakNow(db, now(), settings()));
+
+  app.patch('/api/breaks/:id', async (req) => {
+    const { endsAt } = UpdateTimerBody.parse(req.body);
+    return q.setBreakEnd(db, IdParams.parse(req.params).id, new Date(endsAt), now());
+  });
 
   app.post('/api/breaks/:id/extend', async (req) =>
     q.extendBreak(db, IdParams.parse(req.params).id, now()),

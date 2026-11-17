@@ -54,8 +54,8 @@ export const FinishBlockBody = z.object({
 export const PLAN_LIMIT = 3;
 
 /** POST /api/blocks. `minutes` picks this block's length; the default comes from Settings. */
-/** PATCH /api/blocks/:id: move the running block's end. The server checks it's sensible. */
-export const UpdateBlockBody = z.object({ endsAt: z.iso.datetime({ offset: true }) });
+/** PATCH /api/blocks/:id and /api/breaks/:id: move the running timer's end. The server checks it's sensible. */
+export const UpdateTimerBody = z.object({ endsAt: z.iso.datetime({ offset: true }) });
 
 export const StartBlockBody = z
   .object({ minutes: z.number().int().min(1).max(180).optional() })

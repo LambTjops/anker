@@ -80,7 +80,7 @@ export function Clock({
       {onSetEnd ? (
         <button
           class="clock-edit"
-          title="Change when this block ends"
+          title="Change when this ends"
           onClick={() => {
             setValue(end);
             setEditing(true);

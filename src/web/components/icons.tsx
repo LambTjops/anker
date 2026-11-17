@@ -74,3 +74,13 @@ export function InboxIcon() {
     </svg>
   );
 }
+
+/** Skip forward: a triangle and a bar, for skipping the break. */
+export function SkipIcon() {
+  return (
+    <svg {...svgProps}>
+      <path d="M6 5.5v13l9.5-6.5z" />
+      <path d="M18.5 5.5v13" />
+    </svg>
+  );
+}
