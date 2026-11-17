@@ -463,7 +463,6 @@ button.clock-edit {
   color: inherit;
   background: transparent;
   border: 0;
-  border-bottom: 1px dotted currentColor;
   border-radius: 0;
   /* A 48px tap area without moving the text around it. */
   padding: 0.75rem 0.25rem;
