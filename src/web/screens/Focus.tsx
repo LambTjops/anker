@@ -4,9 +4,13 @@ import { api } from '../api.ts';
 import { mmss, useCountdown } from '../countdown.ts';
 import { celebrate } from '../components/Celebration.tsx';
 import { Clock } from '../components/Clock.tsx';
+import { MusicIcon, PeopleIcon } from '../components/icons.tsx';
 import { ParkThought } from '../components/ParkThought.tsx';
 import { useAction } from '../hooks.ts';
 import { signalTimerEnd, softCue } from '../signal.ts';
+
+/** Endel's focus soundscape, opened in a new tab. */
+const FOCUS_MUSIC_URL = 'https://app.endel.io/player/focus';
 
 type Phase = 'running' | 'stopping' | 'stuck' | 'breakdown';
 
@@ -204,15 +208,33 @@ export function Focus({
               Stop early
             </button>
           </div>
-          {features.focusRoom && features.focusRoomUrl && (
-            <a
-              class="button quiet"
-              href={features.focusRoomUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Join the room ↗
-            </a>
+          {((features.focusRoom && features.focusRoomUrl) || features.focusMusic) && (
+            <div class="row">
+              {features.focusMusic && (
+                <a
+                  class="button icon quiet"
+                  href={FOCUS_MUSIC_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Focus music (Endel)"
+                  title="Focus music (Endel)"
+                >
+                  <MusicIcon />
+                </a>
+              )}
+              {features.focusRoom && features.focusRoomUrl && (
+                <a
+                  class="button icon quiet"
+                  href={features.focusRoomUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Join the room"
+                  title="Join the room"
+                >
+                  <PeopleIcon />
+                </a>
+              )}
+            </div>
           )}
         </div>
       )}

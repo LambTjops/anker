@@ -72,6 +72,7 @@ settings     single row: focus_minutes, break_minutes, long_break_minutes,
              + show_clock, show_end_time, early_break (0|1)             (2026-11-17)
              + focus_room (0|1), focus_room_url (https or '')           (2026-11-17)
              + calm_focus (0|1)                                         (2026-11-17)
+             + focus_music (0|1)                                        (2026-11-17)
 tasks        + planned_for (local date), plan_position                 (Phase 1c)
 focus_blocks + base_seconds (length chosen at Start, before any +5 min) (Phase 1c)
 ```
@@ -108,18 +109,19 @@ The Now screen shows one thing. Everything else is one quiet tap away, behind a 
    - Task was never broken down: its title and **Start**. The task itself becomes its one step. A quiet "Break it down first" asks "What's the first step?" instead.
    - Task has no open steps left: "That task is clear", with "Add a step" and "Mark task done".
 2. **Focus**: the step text and a calm countdown. "Stop early" is small and low-contrast. When time is up: **Done** / **Stuck** / **Keep going**.
-   - **Calm Focus** (added 2026-11-17): while the block runs, only the task, the step, the countdown and the clock show. The other controls (Park a thought, +5 min, Stop early, Join the room) appear while the mouse is over them or a key reaches them. On a touch screen, a tap shows them for 5 seconds, and that first tap never presses a button.
+   - **Calm Focus** (added 2026-11-17): while the block runs, only the task, the step, the countdown and the clock show. The other controls (Park a thought, +5 min, Stop early, Join the room, Focus music) appear while the mouse is over them or a key reaches them. On a touch screen, a tap shows them for 5 seconds, and that first tap never presses a button.
    - In Phase 1, **Stuck** asks "What's a smaller first move?" and inserts what you type _in front of_ the stuck step (`parent_step_id` points at it). The stuck step comes back once the small move is done. In Phase 2 the coach takes this over.
    - **Stop early** offers Done / Done, take a break / Stuck / Stop for now / Back to the timer.
    - **Clock** (added 2026-11-17): the time of day, small and muted, under the countdown on Focus and Break. It also shows when the block or break ends ("14:31 · ends 14:55", 24-hour), which moves with +5 min.
    - **Break it down** (added 2026-09-28): when a task was started as is (its title is the step), Stop early and time's up also offer "Break it down". It asks "What's the first step?", ends the block without a break, and the new step replaces the title step (`status='replaced'`).
    - A quiet **+5 min** sits under the countdown while it runs.
-   - **Join the room** (added 2026-11-17): a quiet link that opens the owner's body-doubling room (a Discord voice channel) in a new tab while a block runs. It appears only when a room link is set in Settings. No bot and no posting: Anker just makes it quicker to show up.
+   - **Join the room** (added 2026-11-17): a quiet two-people icon that opens the owner's body-doubling room (a Discord voice channel) in a new tab while a block runs. It appears only when a room link is set in Settings. No bot and no posting: Anker just makes it quicker to show up.
+   - **Focus music** (added 2026-11-17): a quiet music-note icon beside Join the room that opens Endel's focus player (`https://app.endel.io/player/focus`) in a new tab while a block runs. Just a link, no integration.
    - **Park a thought** (Phase 1c): one field that saves a stray thought to the inbox and returns straight to the timer.
    - **Heads-up** (Phase 1c): a single soft note two minutes before a block or break of at least 5 minutes ends. It can be turned off in Settings.
    - **Done moment** (Phase 1c): Done, and marking a task done, show a check that draws itself with a short rising sound for about a second. There are no points and no streaks.
    - **Break** (Phase 1b): after Done or Stuck at time's up, "Take a break." (or "Time for a longer break.") with a countdown, **+5 min** and **Skip break**. When it ends: a chime, "Break's over." and back to Now.
-   - **Settings** (`#settings`): focus, break and longer-break minutes, and how many blocks come before a longer break. Under **Features**, an on/off switch for each optional feature: the clock, the end time, "Done, take a break", the heads-up chime, Join the room with its room link, and Calm Focus (added 2026-11-17). Every new optional feature gets a switch here, on by default.
+   - **Settings** (`#settings`): focus, break and longer-break minutes, and how many blocks come before a longer break. Under **Features**, an on/off switch for each optional feature: the clock, the end time, "Done, take a break", the heads-up chime, Join the room with its room link, Calm Focus and Focus music (added 2026-11-17). Every new optional feature gets a switch here, on by default.
 3. **Inbox** (`#inbox`): one autofocused text field (Enter saves and clears it) above a plain list of tasks. Tapping a task opens it. Tasks older than 14 days fold under "Show older tasks" (with no count) unless they're current or planned. Planned tasks are tagged "today".
    - **Plan today** (`#plan`, Phase 1c): "Pick up to three, in the order you'll do them." Tap to number them 1–3, with a capture field on top. **Next: check the steps** walks through each planned task on the Task screen (`#review/:n`, "1 of 3"), with the add-step field focused when a task has no steps, so every task gets a concrete first step before the day starts. The last one's **Start with "…"** makes the plan current. A quiet Skip starts straight away. **Start today** on the Off screen leads here.
 4. **Task** (`#task/:id`): the title, a step list (add, edit, reorder with up/down, delete) and **Make this my current task**. This is the only place a list of steps appears.
@@ -136,37 +138,37 @@ The Now screen shows one thing. Everything else is one quiet tap away, behind a 
 
 Everything the UI does goes through this JSON API. The UI has no special endpoints, so a future Android app can do anything the web app can.
 
-| Method & path                                   | Purpose                                                                                                                                                          |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET  /api/state`                               | Everything the Now, Focus and Off screens need: workday, current task, **current step only**, open block, `server_now`                                           |
-| `GET  /api/status`                              | **Read-only** summary for external clients (below)                                                                                                               |
-| `GET  /api/today`                               | Today's done-list (Off screen)                                                                                                                                   |
-| `POST /api/workday/start`                       | Open today's workday                                                                                                                                             |
-| `POST /api/workday/end`                         | Close it and return today's done-list                                                                                                                            |
-| `GET  /api/tasks?status=`                       | List tasks                                                                                                                                                       |
-| `POST /api/tasks`                               | `{ title }` → quick capture                                                                                                                                      |
-| `PATCH /api/tasks/:id`                          | Title, notes, status                                                                                                                                             |
-| `DELETE /api/tasks/:id`                         | Delete a task                                                                                                                                                    |
-| `POST /api/tasks/:id/current`                   | Make this the current task                                                                                                                                       |
-| `GET  /api/tasks/:id/steps`                     | Step list (Task screen only)                                                                                                                                     |
-| `POST /api/tasks/:id/steps`                     | `{ text }` or `{ texts: [] }`                                                                                                                                    |
-| `PATCH /api/steps/:id`                          | Text, status, `position`                                                                                                                                         |
-| `DELETE /api/steps/:id`                         | Delete a step                                                                                                                                                    |
-| `POST /api/blocks`                              | `{ minutes? }` → start a block on the current step (a task with no steps gets its title as its one step)                                                         |
-| `POST /api/blocks/:id/finish`                   | `{ outcome, takeBreak? }` → `{ next, break }`                                                                                                                    |
-| `POST /api/blocks/:id/extend`                   | +5 min on the running block                                                                                                                                      |
-| `POST /api/breaks/:id/extend`                   | +5 min on the running break                                                                                                                                      |
-| `POST /api/breaks/:id/end`                      | End the break now (skip)                                                                                                                                         |
-| `GET  /api/settings`                            | Timer lengths and the feature switches                                                                                                                           |
-| `GET  /api/plan`                                | Today's shortlist, in order                                                                                                                                      |
-| `PUT  /api/plan`                                | `{ taskIds }`: replace today's shortlist (at most 3 open tasks)                                                                                                  |
-| `PATCH /api/settings`                           | `{ focusMinutes, breakMinutes, longBreakMinutes, longBreakEvery, headsUp, showClock, showEndTime, earlyBreak, focusRoom, focusRoomUrl, calmFocus }` (any subset) |
-| `GET  /api/export`                              | Full JSON dump (backup)                                                                                                                                          |
-| `GET  /api/healthz`                             | Liveness                                                                                                                                                         |
-| _Phase 2_ `POST /api/coach/sessions`            | `{ kind, taskId \| stepId }` → first question or steps                                                                                                           |
-| _Phase 2_ `POST /api/coach/sessions/:id/reply`  | `{ text }` → next question or steps                                                                                                                              |
-| _Phase 2_ `POST /api/coach/sessions/:id/accept` | Save the proposed steps                                                                                                                                          |
-| _Phase 2_ `GET  /api/usage/today`               | Tokens, cost and limit                                                                                                                                           |
+| Method & path                                   | Purpose                                                                                                                                                                      |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET  /api/state`                               | Everything the Now, Focus and Off screens need: workday, current task, **current step only**, open block, `server_now`                                                       |
+| `GET  /api/status`                              | **Read-only** summary for external clients (below)                                                                                                                           |
+| `GET  /api/today`                               | Today's done-list (Off screen)                                                                                                                                               |
+| `POST /api/workday/start`                       | Open today's workday                                                                                                                                                         |
+| `POST /api/workday/end`                         | Close it and return today's done-list                                                                                                                                        |
+| `GET  /api/tasks?status=`                       | List tasks                                                                                                                                                                   |
+| `POST /api/tasks`                               | `{ title }` → quick capture                                                                                                                                                  |
+| `PATCH /api/tasks/:id`                          | Title, notes, status                                                                                                                                                         |
+| `DELETE /api/tasks/:id`                         | Delete a task                                                                                                                                                                |
+| `POST /api/tasks/:id/current`                   | Make this the current task                                                                                                                                                   |
+| `GET  /api/tasks/:id/steps`                     | Step list (Task screen only)                                                                                                                                                 |
+| `POST /api/tasks/:id/steps`                     | `{ text }` or `{ texts: [] }`                                                                                                                                                |
+| `PATCH /api/steps/:id`                          | Text, status, `position`                                                                                                                                                     |
+| `DELETE /api/steps/:id`                         | Delete a step                                                                                                                                                                |
+| `POST /api/blocks`                              | `{ minutes? }` → start a block on the current step (a task with no steps gets its title as its one step)                                                                     |
+| `POST /api/blocks/:id/finish`                   | `{ outcome, takeBreak? }` → `{ next, break }`                                                                                                                                |
+| `POST /api/blocks/:id/extend`                   | +5 min on the running block                                                                                                                                                  |
+| `POST /api/breaks/:id/extend`                   | +5 min on the running break                                                                                                                                                  |
+| `POST /api/breaks/:id/end`                      | End the break now (skip)                                                                                                                                                     |
+| `GET  /api/settings`                            | Timer lengths and the feature switches                                                                                                                                       |
+| `GET  /api/plan`                                | Today's shortlist, in order                                                                                                                                                  |
+| `PUT  /api/plan`                                | `{ taskIds }`: replace today's shortlist (at most 3 open tasks)                                                                                                              |
+| `PATCH /api/settings`                           | `{ focusMinutes, breakMinutes, longBreakMinutes, longBreakEvery, headsUp, showClock, showEndTime, earlyBreak, focusRoom, focusRoomUrl, calmFocus, focusMusic }` (any subset) |
+| `GET  /api/export`                              | Full JSON dump (backup)                                                                                                                                                      |
+| `GET  /api/healthz`                             | Liveness                                                                                                                                                                     |
+| _Phase 2_ `POST /api/coach/sessions`            | `{ kind, taskId \| stepId }` → first question or steps                                                                                                                       |
+| _Phase 2_ `POST /api/coach/sessions/:id/reply`  | `{ text }` → next question or steps                                                                                                                                          |
+| _Phase 2_ `POST /api/coach/sessions/:id/accept` | Save the proposed steps                                                                                                                                                      |
+| _Phase 2_ `GET  /api/usage/today`               | Tokens, cost and limit                                                                                                                                                       |
 
 ```jsonc
 // GET /api/status

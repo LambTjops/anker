@@ -205,7 +205,8 @@ button.quiet:hover,
   background: var(--surface);
 }
 
-button.icon {
+button.icon,
+.button.icon {
   padding: 0;
   width: var(--tap);
   font-size: 1.3rem;

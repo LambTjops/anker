@@ -25,6 +25,7 @@ const FEATURES: { key: FeatureKey; label: string }[] = [
   { key: 'earlyBreak', label: '"Done, take a break" when you stop early' },
   { key: 'headsUp', label: 'Soft chime 2 minutes before a block or break ends' },
   { key: 'focusRoom', label: '"Join the room" on Focus, for body doubling' },
+  { key: 'focusMusic', label: 'Focus music link (Endel) on Focus' },
 ];
 
 /** Timer lengths and on/off features. Changes apply from the next block or break. */
@@ -51,6 +52,7 @@ export function Settings() {
         earlyBreak: s.earlyBreak,
         focusRoom: s.focusRoom,
         calmFocus: s.calmFocus,
+        focusMusic: s.focusMusic,
       });
       setRoomUrl(s.focusRoomUrl);
     });

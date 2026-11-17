@@ -49,5 +49,6 @@ export function defaultSettings(config: Config): Settings {
     focusRoom: true,
     focusRoomUrl: '',
     calmFocus: true,
+    focusMusic: true,
   };
 }
