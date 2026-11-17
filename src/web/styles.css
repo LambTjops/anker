@@ -591,7 +591,36 @@ textarea::placeholder {
   }
 }
 
+/* Calm Focus: the buttons stay out of sight until the mouse is over them, a key reaches
+   them, or (on touch) the screen is tapped. Hidden buttons ignore taps, so the first tap
+   only shows them. */
+.reveal {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.reveal.shown,
+.reveal:focus-within {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .reveal:hover {
+    opacity: 1;
+  }
+}
+
+@media (hover: none) {
+  .reveal:not(.shown):not(:focus-within) * {
+    pointer-events: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .reveal {
+    transition: none;
+  }
+
   .fade-in {
     animation: none;
   }

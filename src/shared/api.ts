@@ -79,6 +79,7 @@ export const UpdateSettingsBody = z
     showEndTime: z.boolean().optional(),
     earlyBreak: z.boolean().optional(),
     focusRoom: z.boolean().optional(),
+    calmFocus: z.boolean().optional(),
     /** '' clears it. Only https links, so it can't carry a script. */
     focusRoomUrl: z.union([z.literal(''), z.url({ protocol: /^https$/ }).max(500)]).optional(),
   })
@@ -149,12 +150,15 @@ export interface Settings {
   earlyBreak: boolean;
   /** "Join the room" on Focus, when a room link is set. */
   focusRoom: boolean;
+  /** Focus shows only the step, timer and clock; the buttons appear on hover or a tap. */
+  calmFocus: boolean;
   /** A body-doubling room, such as a Discord voice channel. '' when unset. */
   focusRoomUrl: string;
 }
 
 /** The on/off features, which the Now, Focus and Break screens need to know about. */
-export type FeatureKey = 'headsUp' | 'showClock' | 'showEndTime' | 'earlyBreak' | 'focusRoom';
+export type FeatureKey =
+  'headsUp' | 'showClock' | 'showEndTime' | 'earlyBreak' | 'focusRoom' | 'calmFocus';
 
 /** POST /api/blocks/:id/finish */
 export interface FinishResult {

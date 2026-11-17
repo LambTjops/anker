@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Block, BlockOutcome, FeatureKey, Settings } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { mmss, useCountdown } from '../countdown.ts';
@@ -26,6 +26,7 @@ export function Focus({
 }) {
   const [phase, setPhase] = useState<Phase>('running');
   const [smaller, setSmaller] = useState('');
+  const shown = useTapToShow();
   const { busy, error, run } = useAction();
   const stepText = block.stepText ?? 'This step';
   // Started as is: the task's title stands in as its one step, so offer a real first step.
@@ -139,7 +140,7 @@ export function Focus({
   const progress = Math.min(1, 1 - remaining / (block.plannedSeconds * 1000));
 
   return (
-    <main class="screen centred">
+    <main class="screen centred" onPointerDown={shown.onPointerDown}>
       <div class="stack" style={{ gap: '0.5rem' }}>
         {taskTitle && taskTitle !== stepText && <p class="task-label">{taskTitle}</p>}
         <h1 class="step-text">{stepText}</h1>
@@ -193,7 +194,7 @@ export function Focus({
           )}
         </div>
       ) : (
-        <div class="stack">
+        <div class={`stack${features.calmFocus ? ' reveal' : ''}${shown.on ? ' shown' : ''}`}>
           <ParkThought />
           <div class="row">
             <button class="quiet" disabled={busy} onClick={extend}>
@@ -219,4 +220,24 @@ export function Focus({
       {error && <p class="note">{error}</p>}
     </main>
   );
+}
+
+/** How long the buttons stay after a tap on a touch screen. */
+const SHOW_MS = 5000;
+
+/**
+ * On a touch screen, a tap shows the hidden Focus buttons for a few seconds. With a mouse,
+ * CSS shows them while the pointer is over them (`.reveal:hover`).
+ */
+function useTapToShow() {
+  const [on, setOn] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const onPointerDown = (e: PointerEvent) => {
+    if (e.pointerType === 'mouse') return;
+    setOn(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setOn(false), SHOW_MS);
+  };
+  return { on, onPointerDown };
 }

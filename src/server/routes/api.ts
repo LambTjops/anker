@@ -68,6 +68,7 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
         earlyBreak: timers.earlyBreak,
         focusRoom: timers.focusRoom,
         focusRoomUrl: timers.focusRoomUrl,
+        calmFocus: timers.calmFocus,
       },
     };
   });

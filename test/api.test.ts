@@ -277,6 +277,7 @@ describe('breaks and timers', () => {
       earlyBreak: true,
       focusRoom: true,
       focusRoomUrl: '',
+      calmFocus: true,
     });
     await call('PATCH', '/api/settings', { focusMinutes: 50, breakMinutes: 10 });
     await call('POST', '/api/workday/start');
@@ -401,6 +402,7 @@ describe("today's plan and starting", () => {
       earlyBreak: true,
       focusRoom: true,
       focusRoomUrl: '',
+      calmFocus: true,
     });
   });
 

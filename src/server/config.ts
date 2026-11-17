@@ -48,5 +48,6 @@ export function defaultSettings(config: Config): Settings {
     earlyBreak: true,
     focusRoom: true,
     focusRoomUrl: '',
+    calmFocus: true,
   };
 }

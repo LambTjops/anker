@@ -19,6 +19,7 @@ const FIELDS: { key: NumberKey; label: string; min: number; max: number }[] = [
 
 /** Every optional feature gets a line here, so it can be turned off. */
 const FEATURES: { key: FeatureKey; label: string }[] = [
+  { key: 'calmFocus', label: 'Hide the Focus buttons until you hover or tap' },
   { key: 'showClock', label: 'Clock under the timer' },
   { key: 'showEndTime', label: 'When the timer ends, under the timer' },
   { key: 'earlyBreak', label: '"Done, take a break" when you stop early' },
@@ -49,6 +50,7 @@ export function Settings() {
         showEndTime: s.showEndTime,
         earlyBreak: s.earlyBreak,
         focusRoom: s.focusRoom,
+        calmFocus: s.calmFocus,
       });
       setRoomUrl(s.focusRoomUrl);
     });
