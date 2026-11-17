@@ -34,3 +34,23 @@ export function PeopleIcon() {
     </svg>
   );
 }
+
+/** A light bulb, for parking a stray thought. */
+export function ThoughtIcon() {
+  return (
+    <svg {...svgProps}>
+      <path d="M9 18h6" />
+      <path d="M10 21h4" />
+      <path d="M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z" />
+    </svg>
+  );
+}
+
+/** A rounded square, for stopping early. */
+export function StopIcon() {
+  return (
+    <svg {...svgProps}>
+      <rect x="6" y="6" width="12" height="12" rx="2.5" />
+    </svg>
+  );
+}

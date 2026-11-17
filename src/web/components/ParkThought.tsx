@@ -5,8 +5,7 @@ import { api } from '../api.ts';
  * Catch a stray thought mid-block without leaving the timer: it goes to the inbox and
  * you're straight back to the step.
  */
-export function ParkThought() {
-  const [open, setOpen] = useState(false);
+export function ParkThought({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -25,7 +24,7 @@ export function ParkThought() {
     try {
       await api.createTask(title);
       setText('');
-      setOpen(false);
+      onClose();
       setNote('Parked in your inbox. Back to it.');
     } catch {
       // Keep what was typed; nothing is lost.
@@ -35,16 +34,7 @@ export function ParkThought() {
     }
   };
 
-  if (!open) {
-    return (
-      <>
-        <button class="quiet" onClick={() => setOpen(true)}>
-          Park a thought
-        </button>
-        {note && <p class="note fade-in">{note}</p>}
-      </>
-    );
-  }
+  if (!open) return note ? <p class="note fade-in">{note}</p> : null;
 
   return (
     <form class="stack park" onSubmit={save}>
@@ -52,7 +42,7 @@ export function ParkThought() {
         type="text"
         value={text}
         onInput={(e) => setText(e.currentTarget.value)}
-        onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
+        onKeyDown={(e) => e.key === 'Escape' && onClose()}
         placeholder="What popped into your head?"
         autoFocus
         enterKeyHint="done"
@@ -62,7 +52,7 @@ export function ParkThought() {
         <button class="primary" type="submit" disabled={busy || !text.trim()}>
           Park it
         </button>
-        <button class="quiet" type="button" onClick={() => setOpen(false)}>
+        <button class="quiet" type="button" onClick={() => onClose()}>
           Back to the step
         </button>
       </div>

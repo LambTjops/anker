@@ -4,7 +4,7 @@ import { api } from '../api.ts';
 import { mmss, useCountdown } from '../countdown.ts';
 import { celebrate } from '../components/Celebration.tsx';
 import { Clock } from '../components/Clock.tsx';
-import { MusicIcon, PeopleIcon } from '../components/icons.tsx';
+import { MusicIcon, PeopleIcon, StopIcon, ThoughtIcon } from '../components/icons.tsx';
 import { ParkThought } from '../components/ParkThought.tsx';
 import { useAction } from '../hooks.ts';
 import { signalTimerEnd, softCue } from '../signal.ts';
@@ -31,6 +31,8 @@ export function Focus({
   const [phase, setPhase] = useState<Phase>('running');
   const [smaller, setSmaller] = useState('');
   const shown = useTapToShow();
+  const [parking, setParking] = useState(false);
+  const reveal = `${features.calmFocus ? ' reveal' : ''}${shown.on ? ' shown' : ''}`;
   const { busy, error, run } = useAction();
   const stepText = block.stepText ?? 'This step';
   // Started as is: the task's title stands in as its one step, so offer a real first step.
@@ -198,46 +200,69 @@ export function Focus({
           )}
         </div>
       ) : (
-        <div class={`stack${features.calmFocus ? ' reveal' : ''}${shown.on ? ' shown' : ''}`}>
-          <ParkThought />
+        <div class={`stack${reveal}`}>
           <div class="row">
-            <button class="quiet" disabled={busy} onClick={extend}>
-              +5 min
+            <button
+              class="icon quiet"
+              aria-label="Park a thought"
+              title="Park a thought"
+              aria-expanded={parking}
+              onClick={() => setParking(!parking)}
+            >
+              <ThoughtIcon />
             </button>
-            <button class="quiet" onClick={() => setPhase('stopping')}>
-              Stop early
+            <button
+              class="icon quiet plus-five"
+              disabled={busy}
+              onClick={extend}
+              aria-label="Add 5 minutes"
+              title="Add 5 minutes"
+            >
+              +5
+            </button>
+            <button
+              class="icon quiet"
+              onClick={() => setPhase('stopping')}
+              aria-label="Stop early"
+              title="Stop early"
+            >
+              <StopIcon />
             </button>
           </div>
-          {((features.focusRoom && features.focusRoomUrl) || features.focusMusic) && (
-            <div class="row">
-              {features.focusMusic && (
-                <a
-                  class="button icon quiet"
-                  href={FOCUS_MUSIC_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Focus music (Endel)"
-                  title="Focus music (Endel)"
-                >
-                  <MusicIcon />
-                </a>
-              )}
-              {features.focusRoom && features.focusRoomUrl && (
-                <a
-                  class="button icon quiet"
-                  href={features.focusRoomUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Join the room"
-                  title="Join the room"
-                >
-                  <PeopleIcon />
-                </a>
-              )}
-            </div>
-          )}
+          <ParkThought open={parking} onClose={() => setParking(false)} />
         </div>
       )}
+
+      {!over &&
+        phase === 'running' &&
+        ((features.focusRoom && features.focusRoomUrl) || features.focusMusic) && (
+          <div class={`row corner${reveal}`}>
+            {features.focusMusic && (
+              <a
+                class="button icon quiet"
+                href={FOCUS_MUSIC_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Focus music (Endel)"
+                title="Focus music (Endel)"
+              >
+                <MusicIcon />
+              </a>
+            )}
+            {features.focusRoom && features.focusRoomUrl && (
+              <a
+                class="button icon quiet"
+                href={features.focusRoomUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Join the room"
+                title="Join the room"
+              >
+                <PeopleIcon />
+              </a>
+            )}
+          </div>
+        )}
 
       {error && <p class="note">{error}</p>}
     </main>

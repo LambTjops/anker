@@ -108,15 +108,15 @@ The Now screen shows one thing. Everything else is one quiet tap away, behind a 
    - No current task and nothing planned: "Nothing picked yet", **Plan today** and a link to the Inbox.
    - Task was never broken down: its title and **Start**. The task itself becomes its one step. A quiet "Break it down first" asks "What's the first step?" instead.
    - Task has no open steps left: "That task is clear", with "Add a step" and "Mark task done".
-2. **Focus**: the step text and a calm countdown. "Stop early" is small and low-contrast. When time is up: **Done** / **Stuck** / **Keep going**.
+2. **Focus**: the step text and a calm countdown. While it runs, the controls are a quiet row of single-colour icons under the timer: Park a thought (light bulb), +5 and Stop early (square), each with a tooltip and a screen-reader label. When time is up: **Done** / **Stuck** / **Keep going**.
    - **Calm Focus** (added 2026-11-17): while the block runs, only the task, the step, the countdown and the clock show. The other controls (Park a thought, +5 min, Stop early, Join the room, Focus music) appear while the mouse is over them or a key reaches them. On a touch screen, a tap shows them for 5 seconds, and that first tap never presses a button.
    - In Phase 1, **Stuck** asks "What's a smaller first move?" and inserts what you type _in front of_ the stuck step (`parent_step_id` points at it). The stuck step comes back once the small move is done. In Phase 2 the coach takes this over.
    - **Stop early** offers Done / Done, take a break / Stuck / Stop for now / Back to the timer.
    - **Clock** (added 2026-11-17): the time of day, small and muted, under the countdown on Focus and Break. It also shows when the block or break ends ("14:31 · ends 14:55", 24-hour), which moves with +5 min.
    - **Break it down** (added 2026-09-28): when a task was started as is (its title is the step), Stop early and time's up also offer "Break it down". It asks "What's the first step?", ends the block without a break, and the new step replaces the title step (`status='replaced'`).
    - A quiet **+5 min** sits under the countdown while it runs.
-   - **Join the room** (added 2026-11-17): a quiet two-people icon that opens the owner's body-doubling room (a Discord voice channel) in a new tab while a block runs. It appears only when a room link is set in Settings. No bot and no posting: Anker just makes it quicker to show up.
-   - **Focus music** (added 2026-11-17): a quiet music-note icon beside Join the room that opens Endel's focus player (`https://app.endel.io/player/focus`) in a new tab while a block runs. Just a link, no integration.
+   - **Join the room** (added 2026-11-17): a quiet two-people icon in the top-right corner that opens the owner's body-doubling room (a Discord voice channel) in a new tab while a block runs. It appears only when a room link is set in Settings. No bot and no posting: Anker just makes it quicker to show up.
+   - **Focus music** (added 2026-11-17): a quiet music-note icon in the top-right corner, beside Join the room, that opens Endel's focus player (`https://app.endel.io/player/focus`) in a new tab while a block runs. Just a link, no integration.
    - **Park a thought** (Phase 1c): one field that saves a stray thought to the inbox and returns straight to the timer.
    - **Heads-up** (Phase 1c): a single soft note two minutes before a block or break of at least 5 minutes ends. It can be turned off in Settings.
    - **Done moment** (Phase 1c): Done, and marking a task done, show a check that draws itself with a short rising sound for about a second. There are no points and no streaks.
