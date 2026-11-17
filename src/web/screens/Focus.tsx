@@ -201,6 +201,34 @@ export function Focus({
         </div>
       ) : (
         <div class={`stack${reveal}`}>
+          {((features.focusRoom && features.focusRoomUrl) || features.focusMusic) && (
+            <div class="row">
+              {features.focusMusic && (
+                <a
+                  class="button icon quiet"
+                  href={FOCUS_MUSIC_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Focus music (Endel)"
+                  title="Focus music (Endel)"
+                >
+                  <MusicIcon />
+                </a>
+              )}
+              {features.focusRoom && features.focusRoomUrl && (
+                <a
+                  class="button icon quiet"
+                  href={features.focusRoomUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Join the room"
+                  title="Join the room"
+                >
+                  <PeopleIcon />
+                </a>
+              )}
+            </div>
+          )}
           <div class="row">
             <button
               class="icon quiet"
@@ -232,37 +260,6 @@ export function Focus({
           <ParkThought open={parking} onClose={() => setParking(false)} />
         </div>
       )}
-
-      {!over &&
-        phase === 'running' &&
-        ((features.focusRoom && features.focusRoomUrl) || features.focusMusic) && (
-          <div class={`row corner${reveal}`}>
-            {features.focusMusic && (
-              <a
-                class="button icon quiet"
-                href={FOCUS_MUSIC_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Focus music (Endel)"
-                title="Focus music (Endel)"
-              >
-                <MusicIcon />
-              </a>
-            )}
-            {features.focusRoom && features.focusRoomUrl && (
-              <a
-                class="button icon quiet"
-                href={features.focusRoomUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Join the room"
-                title="Join the room"
-              >
-                <PeopleIcon />
-              </a>
-            )}
-          </div>
-        )}
 
       {error && <p class="note">{error}</p>}
     </main>
