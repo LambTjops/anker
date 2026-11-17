@@ -1,4 +1,4 @@
-import { useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Block, BlockOutcome, FeatureKey, Settings } from '../../shared/api.ts';
 import { api } from '../api.ts';
 import { appLink } from '../appLink.ts';
@@ -32,8 +32,11 @@ export function Focus({
   endDayOffer: boolean;
   refresh: () => Promise<void>;
 }) {
-  const [phase, setPhase] = useState<Phase>('running');
-  const [smaller, setSmaller] = useState('');
+  // The stuck screens survive a trip to the Inbox or Settings, typed text included.
+  const saved = loadStuck(block.id);
+  const [phase, setPhase] = useState<Phase>(saved?.phase ?? 'running');
+  const [smaller, setSmaller] = useState(saved?.text ?? '');
+  useEffect(() => saveStuck(block.id, phase, smaller), [block.id, phase, smaller]);
   const shown = useTapToShow();
   const music =
     features.focusMusic && features.focusMusicUrl ? appLink(features.focusMusicUrl) : null;
@@ -165,7 +168,13 @@ export function Focus({
 
   if (phase === 'breakdown') {
     return (
-      <main class="screen centred">
+      <main
+        class="screen centred"
+        onPointerDownCapture={shown.onPointerDown}
+        onPointerUpCapture={shown.onPointerUp}
+        onClickCapture={shown.onClick}
+      >
+        <CornerLinks shown={shown.on} inbox />
         <p class="task-label">{taskTitle}</p>
         <h1 class="headline">What's the first step?</h1>
         <form class="stack" onSubmit={submitFirstStep}>
@@ -194,7 +203,13 @@ export function Focus({
 
   if (phase === 'stuck') {
     return (
-      <main class="screen centred">
+      <main
+        class="screen centred"
+        onPointerDownCapture={shown.onPointerDown}
+        onPointerUpCapture={shown.onPointerUp}
+        onClickCapture={shown.onClick}
+      >
+        <CornerLinks shown={shown.on} inbox />
         <p class="lead">{stepText}</p>
         <h1 class="headline">What's a smaller first move?</h1>
         <form class="stack" onSubmit={submitSmaller}>
@@ -367,4 +382,33 @@ export function Focus({
       {error && <p class="note">{error}</p>}
     </main>
   );
+}
+
+const stuckKey = (blockId: number) => `anker:stuck:${blockId}`;
+
+/** The stuck screen and its typed text for this block, if one was open. */
+function loadStuck(blockId: number): { phase: 'stuck' | 'breakdown'; text: string } | null {
+  try {
+    const raw = sessionStorage.getItem(stuckKey(blockId));
+    if (!raw) return null;
+    const v = JSON.parse(raw) as { phase?: unknown; text?: unknown };
+    if ((v.phase === 'stuck' || v.phase === 'breakdown') && typeof v.text === 'string') {
+      return { phase: v.phase, text: v.text };
+    }
+  } catch {
+    // Storage blocked or garbled: start fresh.
+  }
+  return null;
+}
+
+function saveStuck(blockId: number, phase: Phase, text: string): void {
+  try {
+    if (phase === 'stuck' || phase === 'breakdown') {
+      sessionStorage.setItem(stuckKey(blockId), JSON.stringify({ phase, text }));
+    } else {
+      sessionStorage.removeItem(stuckKey(blockId));
+    }
+  } catch {
+    // Nothing to do: it only helps across a trip to the Inbox.
+  }
 }
