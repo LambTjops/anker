@@ -23,7 +23,7 @@ const FEATURES: { key: FeatureKey; label: string }[] = [
   { key: 'showClock', label: 'Clock under the timer' },
   { key: 'showEndTime', label: 'When the timer ends, under the timer' },
   { key: 'editEndTime', label: 'Tap the end time on Focus to change it' },
-  { key: 'earlyBreak', label: '"Done, take a break" when you stop early' },
+  { key: 'earlyBreak', label: 'Offer a break after an early Done' },
   { key: 'headsUp', label: 'Soft chime 2 minutes before a block or break ends' },
   { key: 'focusRoom', label: '"Join the room" on Focus, for body doubling' },
   { key: 'focusMusic', label: 'Focus music link on Focus' },

@@ -88,6 +88,9 @@ export const api = {
     request<Block>('POST', '/api/blocks', minutes === undefined ? undefined : { minutes }),
   finishBlock: (id: number, outcome: BlockOutcome, takeBreak?: boolean) =>
     request<FinishResult>('POST', `/api/blocks/${id}/finish`, { outcome, takeBreak }),
+  pauseBlock: (id: number) => request<Block>('POST', `/api/blocks/${id}/pause`),
+  resumeBlock: (id: number) => request<Block>('POST', `/api/blocks/${id}/resume`),
+  startBreak: () => request<Break>('POST', '/api/breaks'),
   extendBlock: (id: number) => request<Block>('POST', `/api/blocks/${id}/extend`),
   setBlockEnd: (id: number, endsAt: string) =>
     request<Block>('PATCH', `/api/blocks/${id}`, { endsAt }),

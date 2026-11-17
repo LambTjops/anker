@@ -49,12 +49,32 @@ export function plannedSecondsEndingAt(startedAt: string, endsAt: Date, now: Dat
 /** Slack for a client whose clock says "time's up" a moment before the server's does. */
 const TIME_UP_GRACE_MS = 5_000;
 
-/** Whether a block or break is still counting down (and so can be extended). */
+/** Whether a block or break is still counting down (and so can be extended or paused). */
 export function isCountingDown(
-  timer: { startedAt: string; plannedSeconds: number; endedAt: string | null },
+  timer: {
+    startedAt: string;
+    plannedSeconds: number;
+    endedAt: string | null;
+    pausedAt?: string | null;
+  },
   now: Date,
 ): boolean {
-  return timer.endedAt === null && now < blockEndsAt(timer);
+  return timer.endedAt === null && !timer.pausedAt && now < blockEndsAt(timer);
+}
+
+/**
+ * Resuming adds the pause to the block's length, so the countdown carries on from where it
+ * stopped. Returns the new planned seconds and the pause's length.
+ */
+export function resumeSeconds(
+  block: { plannedSeconds: number; pausedAt: string },
+  now: Date,
+): { plannedSeconds: number; pausedFor: number } {
+  const pausedFor = Math.max(
+    0,
+    Math.round((now.getTime() - new Date(block.pausedAt).getTime()) / 1000),
+  );
+  return { plannedSeconds: block.plannedSeconds + pausedFor, pausedFor };
 }
 
 /**
@@ -64,12 +84,14 @@ export function isCountingDown(
  */
 export function earnsBreak(
   outcome: BlockOutcome,
-  block: { startedAt: string; plannedSeconds: number },
+  block: { startedAt: string; plannedSeconds: number; pausedAt?: string | null },
   now: Date,
   takeBreak = false,
 ): boolean {
   if (outcome !== 'done' && outcome !== 'stuck') return false;
   if (takeBreak && outcome === 'done') return true;
+  // A paused block's time isn't up, however long the pause.
+  if (block.pausedAt) return false;
   return now.getTime() >= blockEndsAt(block).getTime() - TIME_UP_GRACE_MS;
 }
 
@@ -80,10 +102,23 @@ export function breakKind(blocksSinceLongBreak: number, every: number): 'short' 
 
 /** Seconds of a block that count as focus: time actually spent, capped at the plan. */
 export function focusSeconds(
-  block: { startedAt: string; plannedSeconds: number; endedAt: string | null },
+  block: {
+    startedAt: string;
+    plannedSeconds: number;
+    endedAt: string | null;
+    pausedAt?: string | null;
+    pausedSeconds?: number;
+  },
   now: Date,
 ): number {
   const end = block.endedAt ? new Date(block.endedAt) : now;
   const elapsed = Math.max(0, (end.getTime() - new Date(block.startedAt).getTime()) / 1000);
-  return Math.min(elapsed, block.plannedSeconds);
+  // Paused time isn't focus: earlier pauses, plus the current one if it's still paused.
+  const pausedNow = block.pausedAt
+    ? Math.max(0, (end.getTime() - new Date(block.pausedAt).getTime()) / 1000)
+    : 0;
+  const pausedBefore = block.pausedSeconds ?? 0;
+  // plannedSeconds already includes earlier pauses (resume adds them), not the current one.
+  const active = elapsed - pausedBefore - pausedNow;
+  return Math.max(0, Math.min(active, block.plannedSeconds - pausedBefore));
 }

@@ -168,11 +168,21 @@ export function registerApi(app: FastifyInstance, { db, config, now }: ApiDeps):
     return q.setBlockEnd(db, IdParams.parse(req.params).id, new Date(endsAt), now());
   });
 
+  app.post('/api/blocks/:id/pause', async (req) =>
+    q.pauseBlock(db, IdParams.parse(req.params).id, now()),
+  );
+
+  app.post('/api/blocks/:id/resume', async (req) =>
+    q.resumeBlock(db, IdParams.parse(req.params).id, now()),
+  );
+
   app.post('/api/blocks/:id/extend', async (req) =>
     q.extendBlock(db, IdParams.parse(req.params).id, now()),
   );
 
   // ---- Breaks ----
+
+  app.post('/api/breaks', async () => q.startBreakNow(db, now(), settings()));
 
   app.post('/api/breaks/:id/extend', async (req) =>
     q.extendBreak(db, IdParams.parse(req.params).id, now()),

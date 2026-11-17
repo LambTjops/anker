@@ -10,7 +10,7 @@ import { ParkThought } from '../components/ParkThought.tsx';
 import { useAction } from '../hooks.ts';
 import { signalTimerEnd, softCue } from '../signal.ts';
 
-type Phase = 'running' | 'stopping' | 'stuck' | 'breakdown';
+type Phase = 'running' | 'stopping' | 'stuck' | 'breakdown' | 'doneEarly';
 
 /** A running (or finished) focus block on one step. */
 export function Focus({
@@ -38,19 +38,63 @@ export function Focus({
   // Started as is: the task's title stands in as its one step, so offer a real first step.
   const notBrokenDown = taskTitle !== null && taskTitle === block.stepText;
 
+  const paused = block.pausedAt !== null;
+  // Set once the block is finished but this screen is still up (the early-Done choice).
+  const finished = useRef(false);
+
   const { remaining, over } = useCountdown(
     block.endsAt,
-    () => signalTimerEnd('Block finished', stepText),
-    (clock) => (clock ? `${clock} · Anker` : "Time's up · Anker"),
+    () => {
+      if (!finished.current) signalTimerEnd('Block finished', stepText);
+    },
+    (clock) =>
+      finished.current
+        ? 'Anker'
+        : paused
+          ? 'Paused · Anker'
+          : clock
+            ? `${clock} · Anker`
+            : "Time's up · Anker",
     features.headsUp && block.plannedSeconds >= 5 * 60 ? softCue : undefined,
+    block.pausedAt,
   );
 
-  const finish = (outcome: BlockOutcome, takeBreak?: boolean) =>
+  const finish = (outcome: BlockOutcome) =>
     run(async () => {
-      await api.finishBlock(block.id, outcome, takeBreak);
-      if (outcome === 'done') celebrate('Done.');
+      const result = await api.finishBlock(block.id, outcome);
+      if (outcome === 'done') {
+        celebrate('Done.');
+        // Done before time's up: offer a break before moving on. (Time's up starts one.)
+        if (!result.break && features.earlyBreak) {
+          finished.current = true;
+          setPhase('doneEarly');
+          return;
+        }
+      }
       await refresh();
     });
+
+  const pause = () =>
+    run(async () => {
+      await api.pauseBlock(block.id);
+      setPhase('running');
+      await refresh();
+    });
+
+  const resume = () =>
+    run(async () => {
+      await api.resumeBlock(block.id);
+      await refresh();
+    });
+
+  const takeBreak = () =>
+    run(async () => {
+      await api.startBreak();
+      await refresh();
+    });
+
+  // A task started as is gets a real first step; otherwise, a smaller first move.
+  const stuck = () => setPhase(notBrokenDown ? 'breakdown' : 'stuck');
 
   const extend = () =>
     run(async () => {
@@ -86,7 +130,7 @@ export function Focus({
     const text = smaller.trim();
     if (!text) return;
     void run(async () => {
-      await api.finishBlock(block.id, 'abandoned');
+      await api.finishBlock(block.id, 'stuck');
       if (block.stepId !== null && taskId !== null) {
         await api.addStepBefore(taskId, text, block.stepId);
         await api.updateStep(block.stepId, { status: 'replaced' });
@@ -94,6 +138,23 @@ export function Focus({
       await refresh();
     });
   };
+
+  if (phase === 'doneEarly') {
+    return (
+      <main class="screen centred">
+        <h1 class="headline">Nice. What now?</h1>
+        <div class="stack">
+          <button class="primary big" disabled={busy} onClick={takeBreak}>
+            Take a break
+          </button>
+          <button class="big" disabled={busy} onClick={() => void refresh()}>
+            Carry on
+          </button>
+        </div>
+        {error && <p class="note">{error}</p>}
+      </main>
+    );
+  }
 
   if (phase === 'breakdown') {
     return (
@@ -176,7 +237,14 @@ export function Focus({
         <h1 class="step-text">{stepText}</h1>
       </div>
 
-      {over ? (
+      {paused ? (
+        <div class="stack" style={{ gap: '1rem' }}>
+          <p class="timer focus-timer paused" role="timer" aria-live="off">
+            {mmss(remaining)}
+          </p>
+          <p class="clock">Paused</p>
+        </div>
+      ) : over ? (
         <p class="headline fade-in">Time's up. How did it go?</p>
       ) : (
         <div class="stack" style={{ gap: '1rem' }}>
@@ -194,35 +262,42 @@ export function Focus({
         </div>
       )}
 
-      {over || phase === 'stopping' ? (
+      {paused ? (
+        <div class="stack">
+          <button class="primary big" disabled={busy} onClick={resume}>
+            Resume
+          </button>
+          <div class="row">
+            <button class="quiet" disabled={busy} onClick={() => finish('done')}>
+              Done
+            </button>
+            <button class="quiet" disabled={busy} onClick={stuck}>
+              Stuck
+            </button>
+            <button class="quiet" disabled={busy} onClick={() => finish('abandoned')}>
+              Stop
+            </button>
+          </div>
+        </div>
+      ) : over || phase === 'stopping' ? (
         <div class="stack">
           <button class="primary big" disabled={busy} onClick={() => finish('done')}>
             Done
           </button>
-          {!over && features.earlyBreak && (
-            <button class="quiet" disabled={busy} onClick={() => finish('done', true)}>
-              Done, take a break
-            </button>
-          )}
-          <button class="big" disabled={busy} onClick={() => setPhase('stuck')}>
+          <button class="big" disabled={busy} onClick={stuck}>
             Stuck
           </button>
-          {notBrokenDown && (
-            <button class="quiet" disabled={busy} onClick={() => setPhase('breakdown')}>
-              Break it down
-            </button>
-          )}
           {over ? (
             <button class="big" disabled={busy} onClick={() => finish('keep_going')}>
               Keep going
             </button>
           ) : (
             <>
-              <button class="quiet" disabled={busy} onClick={() => finish('abandoned')}>
-                Stop for now
+              <button class="big" disabled={busy} onClick={pause}>
+                Pause
               </button>
               <button class="quiet" onClick={() => setPhase('running')}>
-                Back to the timer
+                ← Back
               </button>
             </>
           )}

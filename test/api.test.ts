@@ -277,6 +277,59 @@ describe('breaks and timers', () => {
     expect((await call('PATCH', `/api/blocks/${block.id}`, { endsAt: at(10) })).status).toBe(409);
   });
 
+  it('pause freezes a block and resume carries on with the time left', async () => {
+    await call('POST', '/api/workday/start');
+    await setUpCurrentTask(['A']);
+    const { body: block } = await call<Block>('POST', '/api/blocks');
+    advance(10);
+    const { body: paused } = await call<Block>('POST', `/api/blocks/${block.id}/pause`);
+    expect(paused.pausedAt).toBe(clock.toISOString());
+    // Paused: no +5, no second pause, and the status says so.
+    expect((await call('POST', `/api/blocks/${block.id}/extend`)).status).toBe(409);
+    expect((await call('POST', `/api/blocks/${block.id}/pause`)).status).toBe(409);
+    const { body: status } = await call<Status>('GET', '/api/status');
+    expect(status.activeBlock?.paused).toBe(true);
+
+    advance(60);
+    const { body: resumed } = await call<Block>('POST', `/api/blocks/${block.id}/resume`);
+    expect(resumed.pausedAt).toBeNull();
+    expect(new Date(resumed.endsAt).getTime() - clock.getTime()).toBe(15 * 60_000);
+    expect((await call('POST', `/api/blocks/${block.id}/resume`)).status).toBe(409);
+
+    advance(5);
+    const { body: after } = await call<Status>('GET', '/api/status');
+    expect(after.focusMinutes).toBe(15);
+  });
+
+  it('done while paused completes the step without a break', async () => {
+    await call('POST', '/api/workday/start');
+    await setUpCurrentTask(['A', 'B']);
+    const { body: block } = await call<Block>('POST', '/api/blocks');
+    advance(10);
+    await call('POST', `/api/blocks/${block.id}/pause`);
+    advance(120);
+    const { body: result } = await call<FinishResult>('POST', `/api/blocks/${block.id}/finish`, {
+      outcome: 'done',
+    });
+    expect(result.break).toBeNull();
+    const { body: status } = await call<Status>('GET', '/api/status');
+    expect(status.focusMinutes).toBe(10);
+  });
+
+  it('a break can be started after an early Done', async () => {
+    await call('POST', '/api/workday/start');
+    expect((await call('POST', '/api/breaks')).status).toBe(409);
+    await setUpCurrentTask(['A', 'B']);
+    const { body: block } = await call<Block>('POST', '/api/blocks');
+    expect((await call('POST', '/api/breaks')).status).toBe(409);
+    advance(10);
+    await call('POST', `/api/blocks/${block.id}/finish`, { outcome: 'done' });
+    const { body: brk } = await call<Break>('POST', '/api/breaks');
+    expect(brk.kind).toBe('short');
+    expect(brk.plannedSeconds).toBe(5 * 60);
+    expect((await call('POST', '/api/breaks')).status).toBe(409);
+  });
+
   it('skipping a break or starting a block ends it', async () => {
     await call('POST', '/api/workday/start');
     await setUpCurrentTask(['A', 'B', 'C']);

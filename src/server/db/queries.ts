@@ -22,6 +22,7 @@ import {
   focusSeconds,
   isCountingDown,
   plannedSecondsEndingAt,
+  resumeSeconds,
   type DayConfig,
 } from '../domain/day.ts';
 import { AppError, conflict, notFound } from '../errors.ts';
@@ -68,6 +69,8 @@ interface BlockRow {
   base_seconds: number | null;
   ended_at: string | null;
   outcome: BlockOutcome | null;
+  paused_at: string | null;
+  paused_seconds: number;
   step_text: string | null;
 }
 
@@ -135,6 +138,7 @@ const toBlock = (r: BlockRow): Block => ({
   startedAt: r.started_at,
   endsAt: blockEndsAt({ startedAt: r.started_at, plannedSeconds: r.planned_seconds }).toISOString(),
   plannedSeconds: r.planned_seconds,
+  pausedAt: r.paused_at,
 });
 
 const toBreak = (r: BreakRow): Break => ({
@@ -147,10 +151,16 @@ const toBreak = (r: BreakRow): Break => ({
 
 const iso = (d: Date) => d.toISOString();
 
-const timer = (row: { started_at: string; planned_seconds: number; ended_at: string | null }) => ({
+const timer = (row: {
+  started_at: string;
+  planned_seconds: number;
+  ended_at: string | null;
+  paused_at?: string | null;
+}) => ({
   startedAt: row.started_at,
   plannedSeconds: row.planned_seconds,
   endedAt: row.ended_at,
+  pausedAt: row.paused_at ?? null,
 });
 
 /** Ends a block or break at `at`, or at its planned end if that came first. */
@@ -630,6 +640,37 @@ export function setBlockEnd(db: Db, id: number, endsAt: Date, now: Date): Block 
   return toBlock(db.prepare(`${BLOCK_SELECT} WHERE fb.id = ?`).get(id) as BlockRow);
 }
 
+const blockById = (db: Db, id: number) =>
+  toBlock(db.prepare(`${BLOCK_SELECT} WHERE fb.id = ?`).get(id) as BlockRow);
+
+/** Pauses the running block: the countdown stops until it's resumed. */
+export function pauseBlock(db: Db, id: number, now: Date): Block {
+  const block = openBlockRow(db);
+  if (!block || block.id !== id || !isCountingDown(timer(block), now)) {
+    throw conflict('block_not_running', 'That block is not counting down');
+  }
+  db.prepare('UPDATE focus_blocks SET paused_at = ? WHERE id = ?').run(iso(now), id);
+  return blockById(db, id);
+}
+
+/** Resumes a paused block with the time it had left. */
+export function resumeBlock(db: Db, id: number, now: Date): Block {
+  const block = openBlockRow(db);
+  if (!block || block.id !== id || !block.paused_at) {
+    throw conflict('block_not_paused', 'That block is not paused');
+  }
+  const { plannedSeconds, pausedFor } = resumeSeconds(
+    { plannedSeconds: block.planned_seconds, pausedAt: block.paused_at },
+    now,
+  );
+  db.prepare(
+    `UPDATE focus_blocks
+     SET paused_at = NULL, planned_seconds = ?, paused_seconds = paused_seconds + ?
+     WHERE id = ?`,
+  ).run(plannedSeconds, pausedFor, id);
+  return blockById(db, id);
+}
+
 // ---- Breaks ----
 
 function openBreakRow(db: Db): BreakRow | undefined {
@@ -664,6 +705,24 @@ function startBreak(db: Db, after: BlockRow, now: Date, settings: Settings): Bre
     )
     .run(after.workday_id, after.id, kind, iso(now), minutes * 60);
   return toBreak(db.prepare('SELECT * FROM breaks WHERE id = ?').get(lastInsertRowid) as BreakRow);
+}
+
+/**
+ * Starts a break now, after the workday's latest block: the "Take a break" offered after an
+ * early Done.
+ */
+export function startBreakNow(db: Db, now: Date, settings: Settings): Break {
+  return db.transaction(() => {
+    const workday = openWorkdayRow(db);
+    if (!workday) throw conflict('workday_not_started', 'Start the workday first');
+    if (openBlockRow(db)) throw conflict('block_running', 'Finish the running block first');
+    if (openBreakRow(db)) throw conflict('break_running', 'A break is already running');
+    const last = db
+      .prepare(`${BLOCK_SELECT} WHERE fb.workday_id = ? ORDER BY fb.id DESC LIMIT 1`)
+      .get(workday.id) as BlockRow | undefined;
+    if (!last) throw conflict('no_block_yet', 'A break comes after a focus block');
+    return startBreak(db, last, now, settings);
+  })();
 }
 
 /** "+5 min" on a running break. */
@@ -718,7 +777,13 @@ export function status(db: Db, now: Date, day: DayConfig): Status {
     (sum, b) =>
       sum +
       focusSeconds(
-        { startedAt: b.started_at, plannedSeconds: b.planned_seconds, endedAt: b.ended_at },
+        {
+          startedAt: b.started_at,
+          plannedSeconds: b.planned_seconds,
+          endedAt: b.ended_at,
+          pausedAt: b.paused_at,
+          pausedSeconds: b.paused_seconds,
+        },
         now,
       ),
     0,
@@ -735,7 +800,9 @@ export function status(db: Db, now: Date, day: DayConfig): Status {
     workdayEnded: workday !== null && workday.endedAt !== null && openWorkday(db) === null,
     stepsCompleted,
     focusMinutes: Math.floor(seconds / 60),
-    activeBlock: active ? { startedAt: active.startedAt, endsAt: active.endsAt } : null,
+    activeBlock: active
+      ? { startedAt: active.startedAt, endsAt: active.endsAt, paused: active.pausedAt !== null }
+      : null,
     activeBreak: activeBreak
       ? { kind: activeBreak.kind, startedAt: activeBreak.startedAt, endsAt: activeBreak.endsAt }
       : null,

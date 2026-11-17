@@ -450,6 +450,11 @@ button.plus-five {
   font-size: clamp(2.6rem, 10vw, 3.75rem);
 }
 
+/* Paused: the time left stays put, a little dimmer. */
+.focus-timer.paused {
+  opacity: 0.55;
+}
+
 .clock {
   color: var(--muted);
   font-size: 1.25rem;

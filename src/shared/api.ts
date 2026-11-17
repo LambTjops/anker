@@ -131,8 +131,11 @@ export interface Block {
   stepId: number | null;
   stepText: string | null;
   startedAt: string;
+  /** While a block is running this is when it ends; while paused, when it would have. */
   endsAt: string;
   plannedSeconds: number;
+  /** Set while the block is paused; the time left is `endsAt - pausedAt`. */
+  pausedAt: string | null;
 }
 
 export interface Break {
@@ -229,7 +232,7 @@ export interface Status {
   workdayEnded: boolean;
   stepsCompleted: number;
   focusMinutes: number;
-  activeBlock: { startedAt: string; endsAt: string } | null;
+  activeBlock: { startedAt: string; endsAt: string; paused: boolean } | null;
   activeBreak: { kind: 'short' | 'long'; startedAt: string; endsAt: string } | null;
 }
 

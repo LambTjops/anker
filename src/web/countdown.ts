@@ -12,14 +12,17 @@ const HEADS_UP_MS = 2 * 60_000;
 /**
  * Counts down to `endsAt` on server time, calls `onEnd` once when it gets there, and
  * mirrors the time in the tab title. `onHeadsUp`, if given, fires two minutes before.
+ * With `pausedAt`, the time left is frozen at what it was then and nothing fires.
  */
 export function useCountdown(
   endsAt: string,
   onEnd: () => void,
   title: (clock: string | null) => string,
   onHeadsUp?: () => void,
+  pausedAt: string | null = null,
 ): { remaining: number; over: boolean } {
   const end = new Date(endsAt).getTime();
+  const pausedTime = pausedAt ? new Date(pausedAt).getTime() : null;
   const [now, setNow] = useState(serverNow);
   const onEndRef = useRef(onEnd);
   onEndRef.current = onEnd;
@@ -36,6 +39,7 @@ export function useCountdown(
   }, []);
 
   useEffect(() => {
+    if (pausedTime !== null) return;
     const ms = end - serverNow();
     if (ms <= 0) return;
     const t = setTimeout(() => {
@@ -43,22 +47,22 @@ export function useCountdown(
       onEndRef.current();
     }, ms);
     return () => clearTimeout(t);
-  }, [end]);
+  }, [end, pausedTime]);
 
   useEffect(() => {
-    if (!wantsHeadsUp) return;
+    if (!wantsHeadsUp || pausedTime !== null) return;
     const ms = end - HEADS_UP_MS - serverNow();
     if (ms <= 0) return;
     const t = setTimeout(() => headsUpRef.current?.(), ms);
     return () => clearTimeout(t);
-  }, [end, wantsHeadsUp]);
+  }, [end, wantsHeadsUp, pausedTime]);
 
-  const remaining = Math.max(0, end - now);
+  const remaining = Math.max(0, end - (pausedTime ?? now));
   const over = remaining === 0;
   const clock = over ? null : mmss(Math.ceil(remaining / 1000) * 1000);
   useEffect(() => {
     document.title = titleRef.current(clock);
-  }, [clock]);
+  }, [clock, pausedTime]);
   useEffect(
     () => () => {
       document.title = 'Anker';
