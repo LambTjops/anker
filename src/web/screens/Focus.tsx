@@ -4,7 +4,7 @@ import { api } from '../api.ts';
 import { mmss, useCountdown } from '../countdown.ts';
 import { celebrate } from '../components/Celebration.tsx';
 import { Clock } from '../components/Clock.tsx';
-import { MusicIcon, PeopleIcon, StopIcon, ThoughtIcon } from '../components/icons.tsx';
+import { GearIcon, MusicIcon, PeopleIcon, StopIcon, ThoughtIcon } from '../components/icons.tsx';
 import { ParkThought } from '../components/ParkThought.tsx';
 import { useAction } from '../hooks.ts';
 import { signalTimerEnd, softCue } from '../signal.ts';
@@ -147,6 +147,15 @@ export function Focus({
 
   return (
     <main class="screen centred" onPointerDown={shown.onPointerDown}>
+      {/* Always hidden until hover, a key or a tap, whatever Calm Focus says. */}
+      <a
+        class={`button icon quiet corner reveal${shown.on ? ' shown' : ''}`}
+        href="#settings"
+        aria-label="Settings"
+        title="Settings"
+      >
+        <GearIcon />
+      </a>
       <div class="stack" style={{ gap: '0.5rem' }}>
         {taskTitle && taskTitle !== stepText && <p class="task-label">{taskTitle}</p>}
         <h1 class="step-text">{stepText}</h1>

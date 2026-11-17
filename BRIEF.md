@@ -116,6 +116,7 @@ The Now screen shows one thing. Everything else is one quiet tap away, behind a 
    - **Break it down** (added 2026-09-28): when a task was started as is (its title is the step), Stop early and time's up also offer "Break it down". It asks "What's the first step?", ends the block without a break, and the new step replaces the title step (`status='replaced'`).
    - A quiet **+5 min** sits under the countdown while it runs.
    - **Join the room** (added 2026-11-17): a quiet two-people icon under the timer, above the other controls, that opens the owner's body-doubling room (a Discord voice channel) in a new tab while a block runs. It appears only when a room link is set in Settings. No bot and no posting: Anker just makes it quicker to show up.
+   - **Settings shortcut** (added 2026-11-17): a cog in the top-right corner, always hidden until the mouse is over it, a key reaches it or the screen is tapped. It opens Settings; Back returns to the running block.
    - **Focus music** (added 2026-11-17): a quiet music-note icon beside Join the room that opens Endel's focus player (`https://app.endel.io/player/focus`) in a new tab while a block runs. Just a link, no integration.
    - **Park a thought** (Phase 1c): one field that saves a stray thought to the inbox and returns straight to the timer.
    - **Heads-up** (Phase 1c): a single soft note two minutes before a block or break of at least 5 minutes ends. It can be turned off in Settings.
