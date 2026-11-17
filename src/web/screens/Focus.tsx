@@ -146,7 +146,12 @@ export function Focus({
   const progress = Math.min(1, 1 - remaining / (block.plannedSeconds * 1000));
 
   return (
-    <main class="screen centred" onPointerDown={shown.onPointerDown}>
+    <main
+      class="screen centred"
+      onPointerDownCapture={shown.onPointerDown}
+      onPointerUpCapture={shown.onPointerUp}
+      onClickCapture={shown.onClick}
+    >
       {/* Always hidden until hover, a key or a tap, whatever Calm Focus says. */}
       <a
         class={`button icon quiet corner reveal${shown.on ? ' shown' : ''}`}
@@ -281,16 +286,38 @@ const SHOW_MS = 5000;
 /**
  * On a touch screen, a tap shows the hidden Focus buttons for a few seconds. With a mouse,
  * CSS shows them while the pointer is over them (`.reveal:hover`).
+ *
+ * A tap that lands on a hidden button only shows it: the tap's own click is swallowed.
+ * (The buttons become visible as the finger goes down, so CSS alone can't stop the click.)
  */
 function useTapToShow() {
   const [on, setOn] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const swallow = useRef(false);
   useEffect(() => () => clearTimeout(timer.current), []);
   const onPointerDown = (e: PointerEvent) => {
     if (e.pointerType === 'mouse') return;
+    swallow.current = startsOnHidden(e.target);
     setOn(true);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setOn(false), SHOW_MS);
   };
-  return { on, onPointerDown };
+  const onPointerUp = () => {
+    // The click follows pointerup straight away; don't let a stale flag eat a later one.
+    if (swallow.current) setTimeout(() => (swallow.current = false), 400);
+  };
+  const onClick = (e: MouseEvent) => {
+    if (!swallow.current) return;
+    swallow.current = false;
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  return { on, onPointerDown, onPointerUp, onClick };
+}
+
+/** Whether the press began on a control that was still hidden (faded out) at that moment. */
+function startsOnHidden(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  const group = target.closest('.reveal');
+  return group !== null && Number(getComputedStyle(group).opacity) < 0.5;
 }
